@@ -10,6 +10,7 @@ Notes:
 """
 
 
+import cartopy.crs as ccrs
 from functools import cache
 import itertools
 import matplotlib.pyplot as plt
@@ -289,6 +290,39 @@ def read_fusion_high_low(fusion_high_low='fusion', gmsl=False, scenario='ssp585'
     # Read data
     proj_da = xr.open_dataset(in_fn)['sea_level_change']
     return proj_da
+
+
+@cache
+def get_info_high_low_exceed_df():
+    """
+    Return gauge info, high-end low-end projection for 2100, and the probabilities of exceeding these.
+
+    proj_df : DataFrame
+        DataFrame containing gauge_id, gauge_name, lat, lon, country, high, low, p_ex_high_ssp585, p_ex_high_ssp126,
+        p_ex_low_ssp585, p_ex_low_ssp126
+    """
+    # Read gauge info
+    proj_df = pd.read_csv(DATA_DIR / 'gauge_info_d25a.csv').set_index('gauge_id')
+    # Read high-end and low-end projections for the year 2100
+    for high_low in ['high', 'low']:
+        temp_da = read_fusion_high_low(fusion_high_low=high_low, gmsl=False, scenario=None)
+        temp_ser = temp_da.sel(years=2100).rename({'locations': 'gauge_id'}).to_series().rename(high_low)
+        proj_df = pd.merge(proj_df, temp_ser, on='gauge_id')
+    # Probability of exceeding high-end and low-end projections under different scenarios
+    for high_low in ['high', 'low']:
+        for scenario in ['ssp585', 'ssp126']:
+            # Get and linearly interpolate quantile functions for fusion under specified scenario in 2100
+            fusion_da = read_fusion_high_low(fusion_high_low='fusion', gmsl=False, scenario=scenario).sel(years=2100)
+            fusion_da = fusion_da.interp(quantiles=np.linspace(0, 1, 20001), method='linear')  # interval of 0.005%
+            # Get high-end or low-end projection
+            high_low_da = read_fusion_high_low(fusion_high_low=high_low, gmsl=False, scenario=None)
+            # Find approximate probability of exceeding high-end or low-end projection
+            p_ex_da = (fusion_da > high_low_da).mean(dim='quantiles')
+            p_ex_da = p_ex_da.round(decimals=4)  # round to nearest 0.01%
+            p_ex_ser = p_ex_da.sel(years=2100).rename({'locations': 'gauge_id'}).to_series()
+            p_ex_ser = p_ex_ser.rename(f'p_ex_{high_low}_{scenario}')
+            proj_df = pd.merge(proj_df, p_ex_ser, on='gauge_id')
+    return proj_df
 
 
 def fig_fusion_timeseries(gauge=None):
