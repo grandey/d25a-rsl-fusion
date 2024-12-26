@@ -386,3 +386,32 @@ def fig_fusion_timeseries(gauge=None):
             ax.tick_params(axis='y', labelright=True)
     return fig, axs
 
+
+def fig_high_map(high_low='high'):
+    """
+    Plot map of high-end or low-end projection.
+
+    Parameters
+    ----------
+    high_low : str
+        Choose whether to plot high-end ('high'; default) or low-end ('low') projection.
+
+    Returns
+    -------
+    fig : figure
+    ax : Axes
+    """
+    # Set up map
+    fig = plt.figure(figsize=(5, 3), tight_layout=True)
+    ax = fig.add_subplot(1, 1, 1, projection=ccrs.PlateCarree())
+    ax.coastlines()
+    # Read and plot projection data
+    proj_df = get_info_high_low_exceed_df()
+    cmap = plt.get_cmap('viridis', 10)
+    cmap.set_over('orange')
+    plt.scatter(proj_df['lon'], proj_df['lat'], c=proj_df[high_low], s=15, marker='o', edgecolors='1.',
+                linewidths=0.5, vmin=1, vmax=3, cmap=cmap)
+    cbar = plt.colorbar(orientation='horizontal', extend='both', pad=0.05,
+                        label=f'{high_low.title()}-end projection of RSL rise in 2100, m')
+    cbar.ax.set_xticks(np.arange(1, 3.1, 0.2))
+    return fig, ax
