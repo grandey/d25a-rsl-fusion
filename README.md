@@ -45,10 +45,10 @@ cd ..
 ```
 
 ### 3. Produce data for fusion, high-end, and low-end projections
-[**`d25a_data.ipynb`**](d25a_data.ipynb) uses the input data to produce the fusion, high-end, and low-end projections, which are saved to [**`data_fusion/`**](data_fusion/).
+[**`data_d25a.ipynb`**](data_d25a.ipynb) uses the input data to produce the fusion, high-end, and low-end projections, which are saved to [**`data_fusion/`**](data_fusion/).
 
 ### 4. Analyse data and produce figures - NOT YET IMPLEMENTED
-[**`d25a_figs.ipynb`**](d25a_figs.ipynb) analyses the projections and produces the figures.
+[**`figs_d25a.ipynb`**](figs_d25a.ipynb) analyses the projections and produces the figures.
 
 ## Author
 [Benjamin S. Grandey](https://grandey.github.io) (_Nanyang Technological University_), in collaboration with colleagues.
