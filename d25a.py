@@ -38,7 +38,11 @@ plt.rcParams['grid.color'] = '0.95'
 # Constants
 AR6_DIR = Path.cwd() / 'data_ar6'  # directory containing AR6 input data
 PSML_DIR = Path.cwd() / 'data_psmsl'  # directory containing PSMSL catalogue file
-FUSION_DIR = Path.cwd() / 'data_fusion'  # directory containing projections produced by d25a_data.ipynb
+DATA_DIR = Path.cwd() / 'data_d25a'  # directory containing projections produced by data_d25a.ipynb
+FIG_DIR = Path.cwd() / 'figs_d25a'  # directory in which to save figures
+F_NUM = itertools.count(1)  # main figures counter
+S_NUM = itertools.count(1)  # supplementary figures counter
+O_NUM = itertools.count(1)  # other figures counter
 
 
 def get_watermark():
@@ -46,6 +50,8 @@ def get_watermark():
     packages = 'matplotlib,numpy,pandas,seaborn,xarray'
     return watermark(machine=True, conda=True, python=True, packages=packages)
 
+
+# Functions used by data_d25a.ipynb
 
 @cache
 def get_gauge_info(gauge='TANJONG_PAGAR'):
@@ -245,3 +251,41 @@ def get_fusion_weights():
     # Rename
     w_da = w_da.rename('weights')
     return w_da
+
+
+# Functions used by figs_d25a.ipynb
+
+@cache
+def read_fusion_high_low(fusion_high_low='fusion', gmsl=False, scenario='ssp585'):
+    """
+    Read quantile function data produced by data_d25a.ipynb.
+
+    Parameters
+    ----------
+    fusion_high_low : str
+        Choose whether to read full fusion ('fusion'), high-end ('high'), or low-end ('low') projection.
+    scenario : str or None
+        If reading fusion, options are 'ssp585' or 'ssp126'. Ignored for high-end or low-end.
+    gmsl : bool
+        If True, return global mean sea level. If False (default), return relative sea level at gauge locations.
+
+    Returns
+    -------
+    qfs_da : xarray DataArray
+        DataArray of sea-level rise quantiles in m for different probability levels.
+    """
+    # File to read
+    if fusion_high_low == 'fusion':
+        if gmsl:
+            in_fn = DATA_DIR / f'gmsl_fusion_{scenario}_d25a.nc'
+        else:
+            in_fn = DATA_DIR / f'rsl_fusion_{scenario}_d25a.nc'
+    elif fusion_high_low in ['high', 'low']:
+        if gmsl:
+            in_fn = DATA_DIR / f'gmsl_{fusion_high_low}_d25a.nc'
+        else:
+            in_fn = DATA_DIR / f'rsl_{fusion_high_low}_d25a.nc'
+    # Read data
+    qfs_da = xr.open_dataset(in_fn)['sea_level_change']
+    return qfs_da
+
