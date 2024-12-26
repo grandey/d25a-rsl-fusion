@@ -37,6 +37,7 @@ plt.rcParams['grid.color'] = '0.95'
 
 # Constants
 AR6_DIR = Path.cwd() / 'data_ar6'  # directory containing AR6 input data
+PSML_DIR = Path.cwd() / 'data_psmsl'  # directory containing PSMSL catalogue file
 FUSION_DIR = Path.cwd() / 'data_fusion'  # directory containing projections produced by d25a_data.ipynb
 
 
@@ -49,8 +50,8 @@ def get_watermark():
 @cache
 def get_gauge_info(gauge='TANJONG_PAGAR'):
     """
-    Get name, ID, latitude, and longitude of tide gauge, using location_list.lst
-    (https://doi.org/10.5281/zenodo.6382554).
+    Get name, ID, latitude, longitude, and country of tide gauge, using location_list.lst
+    (https://doi.org/10.5281/zenodo.6382554) and PSMSL catalogue file.
 
     Parameters
     ----------
@@ -60,13 +61,13 @@ def get_gauge_info(gauge='TANJONG_PAGAR'):
     Returns
     -------
     gauge_info : dict
-        Dictionary containing gauge_name, gauge_id, lat, lon.
+        Dictionary containing gauge_name, gauge_id, lat, lon, country.
 
     Notes
     -----
-    This function follows d23a-fusion.
+    This function builds on d23a-fusion by also including country information.
     """
-    # Read input file into DataFrame
+    # Read location_list.lst into DataFrame
     in_fn = AR6_DIR / 'location_list.lst'
     in_df = pd.read_csv(in_fn, sep='\t', names=['gauge_name', 'gauge_id', 'lat', 'lon'])
     # Get data for gauge of interest
@@ -80,6 +81,18 @@ def get_gauge_info(gauge='TANJONG_PAGAR'):
             gauge_info[c] = df[c].values[0]
     except IndexError:
         raise ValueError(f"gauge='{gauge}' not found.")
+    # Get country information
+    psmsl_fn = PSML_DIR / 'nucat.dat'  # PSMSL catalogue file
+    with open(psmsl_fn) as f:  # open file
+        for l in f:  # loop over lines
+            s_list = l.split()  # split line into strings
+            try:
+                if l[0:24] == '                        ' and len(s_list) >= 2:
+                    country = ' '.join(s_list[1:])  # most recent country heading read
+                elif s_list[0] == str(gauge_info['gauge_id']):
+                    gauge_info['country'] = country  # if gauge found, save most recently-read country info
+            except IndexError:
+                pass
     return gauge_info
 
 

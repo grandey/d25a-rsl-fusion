@@ -19,7 +19,7 @@ conda env create --file environment.yml
 
 The analysis has been performed within this environment on _macOS 13_ (arm64).
 
-### 2. Download input data (IPCC AR6 projections)
+### 2. Download input data
 Input data from the [IPCC AR6 Sea Level Projections](https://doi.org/10.5281/zenodo.6382554) and the [IPCC AR6 Relative Sea Level Projection Distributions](https://doi.org/10.5281/zenodo.5914932) repositories can be downloaded as follows:
 
 ```
@@ -33,7 +33,16 @@ curl "https://zenodo.org/records/6382554/files/location_list.lst?download=1" -O
 cd ..
 ```
 
-Users of these data should note the [required acknowledgments and citations](https://doi.org/10.5281/zenodo.6382554).
+Users of these data IPCC AR6 projections should note the [required acknowledgments and citations](https://doi.org/10.5281/zenodo.6382554).
+
+The [PSMSL catalogue file](https://psmsl.org/data/obtaining/nucat.dat) identifies which country each tide gauge corresponds to:
+
+```
+mkdir data_psmsl
+cd data_psmsl
+curl "https://psmsl.org/data/obtaining/nucat.dat" -O
+cd ..
+```
 
 ### 3. Produce data for fusion, high-end, and low-end projections
 [**`d25a_data.ipynb`**](d25a_data.ipynb) uses the input data to produce the fusion, high-end, and low-end projections, which are saved to [**`data_fusion/`**](data_fusion/).
