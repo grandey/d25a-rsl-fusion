@@ -306,15 +306,13 @@ def fig_fusion_timeseries(gauge=None):
     fig : figure
     axs : array of Axes
     """
-    # Years and percentiles of interest
-    p_str_list = ('5th', '17th', '50th', '83rd', '95th')
     # Create Figure and Axes
     fig, axs = plt.subplots(1, 2, figsize=(8, 3), sharex=False, sharey=True, tight_layout=True)
     # Loop over scenarios and axes
     for i, (scenario, ax) in enumerate(zip(['ssp585', 'ssp126'], axs)):
         # Plot median, likely range, and very likely range of fusion
         if gauge is None:
-            qfs_da = read_fusion_high_low(fusion_high_low='fusion', gmsl=True, scenario=scenario)
+            qfs_da = read_fusion_high_low(fusion_high_low='fusion', gmsl=True, scenario=scenario).squeeze()
         else:
             qfs_da = read_fusion_high_low(fusion_high_low='fusion', gmsl=False, scenario=scenario)
             qfs_da = qfs_da.sel(locations=get_gauge_info(gauge=gauge)['gauge_id']).squeeze()
@@ -353,3 +351,4 @@ def fig_fusion_timeseries(gauge=None):
         if i == 1:
             ax.tick_params(axis='y', labelright=True)
     return fig, axs
+
