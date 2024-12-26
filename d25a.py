@@ -43,6 +43,7 @@ FIG_DIR = Path.cwd() / 'figs_d25a'  # directory in which to save figures
 F_NUM = itertools.count(1)  # main figures counter
 S_NUM = itertools.count(1)  # supplementary figures counter
 O_NUM = itertools.count(1)  # other figures counter
+SSP_LABEL_DICT = {'ssp126': 'SSP1-2.6', 'ssp585': 'SSP5-8.5'}  # names of scenarios
 
 
 def get_watermark():
@@ -258,7 +259,7 @@ def get_fusion_weights():
 @cache
 def read_fusion_high_low(fusion_high_low='fusion', gmsl=False, scenario='ssp585'):
     """
-    Read quantile function data produced by data_d25a.ipynb.
+    Read projection data produced by data_d25a.ipynb.
 
     Parameters
     ----------
@@ -271,8 +272,8 @@ def read_fusion_high_low(fusion_high_low='fusion', gmsl=False, scenario='ssp585'
 
     Returns
     -------
-    qfs_da : xarray DataArray
-        DataArray of sea-level rise quantiles in m for different probability levels.
+    proj_da : xarray DataArray
+        DataArray of sea-level projection.
     """
     # File to read
     if fusion_high_low == 'fusion':
@@ -286,6 +287,69 @@ def read_fusion_high_low(fusion_high_low='fusion', gmsl=False, scenario='ssp585'
         else:
             in_fn = DATA_DIR / f'rsl_{fusion_high_low}_d25a.nc'
     # Read data
-    qfs_da = xr.open_dataset(in_fn)['sea_level_change']
-    return qfs_da
+    proj_da = xr.open_dataset(in_fn)['sea_level_change']
+    return proj_da
 
+
+def fig_fusion_timeseries(gauge=None):
+    """
+    Plot time series of median, likely range, and very likely range of sea level for (a) SSP5-8.5 and (b) SSP1-2.6.
+    Also plot high-end and low-end projections.
+
+    Parameters
+    ----------
+    gauge : int, str, or None.
+        ID or name of gauge. If None (default), then use global mean.
+
+    Returns
+    -------
+    fig : figure
+    axs : array of Axes
+    """
+    # Years and percentiles of interest
+    p_str_list = ('5th', '17th', '50th', '83rd', '95th')
+    # Create Figure and Axes
+    fig, axs = plt.subplots(1, 2, figsize=(8, 3), sharex=False, sharey=True, tight_layout=True)
+    # Loop over scenarios and axes
+    for i, (scenario, ax) in enumerate(zip(['ssp585', 'ssp126'], axs)):
+        # Plot median, likely range, and very likely range of fusion
+        if gauge is None:
+            qfs_da = read_fusion_high_low(fusion_high_low='fusion', gmsl=True, scenario=scenario)
+        else:
+            qfs_da = read_fusion_high_low(fusion_high_low='fusion', gmsl=False, scenario=scenario)
+            qfs_da = qfs_da.sel(locations=get_gauge_info(gauge=gauge)['gauge_id']).squeeze()
+        ax.plot(qfs_da['years'], qfs_da.sel(quantiles=0.5), color='turquoise', alpha=1,
+                label=f'Median projection')
+        ax.fill_between(qfs_da['years'], qfs_da.sel(quantiles=0.17), qfs_da.sel(quantiles=0.83), color='turquoise',
+                        alpha=0.4, label='Likely range')
+        ax.fill_between(qfs_da['years'], qfs_da.sel(quantiles=0.83), qfs_da.sel(quantiles=0.95), color='turquoise',
+                        alpha=0.1, label='Very likely range')
+        ax.fill_between(qfs_da['years'], qfs_da.sel(quantiles=0.05), qfs_da.sel(quantiles=0.17), color='turquoise',
+                        alpha=0.1)
+        # Plot high-end or low-end projection
+        if scenario == 'ssp585':
+            high_low = 'high'
+            color = 'darkred'
+        elif scenario == 'ssp126':
+            high_low = 'low'
+            color = 'darkgreen'
+        if gauge is None:
+            proj_da = read_fusion_high_low(fusion_high_low=high_low, gmsl=True, scenario=None)
+        else:
+            proj_da = read_fusion_high_low(fusion_high_low=high_low, gmsl=False, scenario=None)
+            proj_da = proj_da.sel(locations=get_gauge_info(gauge=gauge)['gauge_id']).squeeze()
+        ax.plot(proj_da['years'], proj_da, color=color, alpha=1,
+                label=f'{high_low.title()}-end projection')
+        # Customise plot
+        ax.set_title(f'({chr(97+i)}) {SSP_LABEL_DICT[scenario]}')
+        ax.legend(loc='upper left')
+        ax.set_xlim([2020, 2100])
+        ax.set_xlabel('Year')
+        if i == 0:
+            if gauge is None:
+                ax.set_ylabel('GMSL, m')
+            else:
+                ax.set_ylabel(f'RSL at {gauge.replace("_", " ").title()}, m')
+        if i == 1:
+            ax.tick_params(axis='y', labelright=True)
+    return fig, axs
