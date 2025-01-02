@@ -20,7 +20,7 @@ conda env create --file environment.yml
 The analysis has been performed within this environment on _macOS 13_ (arm64).
 
 ### 2. Download input data
-Input data from the [IPCC AR6 Sea Level Projections](https://doi.org/10.5281/zenodo.6382554) and the [IPCC AR6 Relative Sea Level Projection Distributions](https://doi.org/10.5281/zenodo.5914932) repositories can be downloaded as follows:
+Input data from the [IPCC AR6 Sea Level Projections](https://doi.org/10.5281/zenodo.6382554), the [IPCC AR6 Relative Sea Level Projection Distributions](https://doi.org/10.5281/zenodo.5914932), and the [IPCC AR6 Relative Sea Level Projections without Background Component](https://doi.org/10.5281/zenodo.5967269) repositories can be downloaded as follows:
 
 ```
 mkdir data_ar6
@@ -29,11 +29,13 @@ curl "https://zenodo.org/records/6382554/files/ar6.zip?download=1" -O
 unzip ar6.zip
 curl "https://zenodo.org/records/5914932/files/ar6-regional-distributions.zip?download=1" -O
 unzip ar6-regional-distributions.zip
+curl "https://zenodo.org/records/5967269/files/ar6-regional_novlm-distributions.zip?download=1" -O
+unzip ar6-regional_novlm-distributions.zip
 curl "https://zenodo.org/records/6382554/files/location_list.lst?download=1" -O
 cd ..
 ```
 
-Users of these data IPCC AR6 projections should note the [required acknowledgments and citations](https://doi.org/10.5281/zenodo.6382554).
+Users of these IPCC AR6 projections should note the [required acknowledgments and citations](https://doi.org/10.5281/zenodo.6382554).
 
 The [PSMSL catalogue file](https://psmsl.org/data/obtaining/nucat.dat) identifies which country each tide gauge corresponds to:
 
