@@ -297,6 +297,8 @@ def get_info_high_low_exceed_df():
     """
     Return gauge info, high-end low-end projection for 2100, and the probabilities of exceeding these.
 
+    Returns
+    -------
     proj_df : DataFrame
         DataFrame containing gauge_id, gauge_name, lat, lon, country, high, low, p_ex_high_ssp585, p_ex_high_ssp126,
         p_ex_low_ssp585, p_ex_low_ssp126
@@ -323,6 +325,35 @@ def get_info_high_low_exceed_df():
             p_ex_ser = p_ex_ser.rename(f'p_ex_{high_low}_{scenario}')
             proj_df = pd.merge(proj_df, p_ex_ser, on='gauge_id')
     return proj_df
+
+
+@cache
+def get_country_stats_df():
+    """
+    Return country-level statistics across gauges for high- and low-end projections for 2100.
+
+    Returns
+    -------
+    country_stats_df : DataFrame
+        DataFrame containing country, count (number of gauges), high_med, high_min, high_max, low_med, low_min, low_max.
+    """
+    # Get high-end and low-end projections for 2100
+    proj_df = get_info_high_low_exceed_df()
+    # Groupby country and calculate count, median, min, and max
+    count_df = proj_df.groupby('country').count()
+    med_df = proj_df.groupby('country').median(numeric_only=True)
+    min_df = proj_df.groupby('country').min(numeric_only=True)
+    max_df = proj_df.groupby('country').max(numeric_only=True)
+    # Save country-level stats to new DataFrame
+    columns = ['country', 'count', 'high_med', 'high_min', 'high_max', 'low_med', 'low_min', 'low_max']
+    country_stats_df = pd.DataFrame(columns=columns)
+    country_stats_df['country'] = count_df.index
+    country_stats_df['count'] = count_df['high'].values
+    for high_low in ['high', 'low']:
+        country_stats_df[f'{high_low}_med'] = med_df[high_low].values
+        country_stats_df[f'{high_low}_min'] = min_df[high_low].values
+        country_stats_df[f'{high_low}_max'] = max_df[high_low].values
+    return country_stats_df
 
 
 def fig_fusion_timeseries(gauge=None):
