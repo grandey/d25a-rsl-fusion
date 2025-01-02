@@ -59,7 +59,7 @@ def get_watermark():
 def get_gauge_info(gauge='TANJONG_PAGAR'):
     """
     Get name, ID, latitude, longitude, and country of tide gauge, using location_list.lst
-    (https://doi.org/10.5281/zenodo.6382554) and PSMSL catalogue file.
+    (https://doi.org/10.5281/zenodo.6382554) and the PSMSL catalogue file.
 
     Parameters
     ----------
@@ -105,7 +105,7 @@ def get_gauge_info(gauge='TANJONG_PAGAR'):
 
 
 @cache
-def get_sl_qfs(workflow='fusion_1e+2e', gmsl=False, rate=False, scenario='ssp585'):
+def get_sl_qfs(workflow='fusion_1e+2e', gmsl_rsl_novlm='rsl', scenario='ssp585'):
     """
     Return quantile functions corresponding to a probabilistic projection of sea-level rise.
 
@@ -114,10 +114,9 @@ def get_sl_qfs(workflow='fusion_1e+2e', gmsl=False, rate=False, scenario='ssp585
     workflow : str
         AR6 workflow (e.g. 'wf_1e'), p-box bound ('lower', 'upper', 'outer'), effective distribution (e.g.
         'effective_0.5'), mean (e.g. 'mean_1e+2e'), or fusion (e.g. 'fusion_1e+2e', default).
-    gmsl : bool
-        If True, return global mean sea level. If False (default), return relative sea level at gauge locations.
-    rate : bool
-        If True, return rate of change. If False (default), return sea-level rise.
+    gmsl_rsl_novlm : str
+        Return global mean sea level ('gmsl'), relative sea level (RSL) at gauge locations ('rsl'; default), or
+        RSL without the background component ('novlm').
     scenario : str
         Options are 'ssp585' (default) or 'ssp126'.
 
@@ -129,47 +128,39 @@ def get_sl_qfs(workflow='fusion_1e+2e', gmsl=False, rate=False, scenario='ssp585
     Notes
     -----
     1. This function is based on get_sl_qf() in the d23a-fusion repository.
-    2. In contrast to d23a.get_sl_qf() which returns data for a specific year and location and year,
-       get_sl_qfs() returns data for multiple years during the 21st century and gauge locations (if gmsl is not True).
+    2. In contrast to d23a.get_sl_qf(), which returns data for a specific year and location,
+       get_sl_qfs() returns data for multiple years during the 21st century and gauge locations.
     """
     # Case 1: single workflow, corresponding to one of the alternative projections
     if workflow in ['wf_1e', 'wf_1f', 'wf_2e', 'wf_2f', 'wf_3e', 'wf_3f', 'wf_4']:
         # Read data
-        if rate:
-            if gmsl:  # GMSL rate is not available in ar6.zip
-                raise ValueError('rate=True is incompatible with gauge=None.')
-            else:  # RSL rate
-                in_dir = (AR6_DIR / 'ar6-regional-distributions' / 'regional' / 'dist_workflows_rates' / workflow
-                          / scenario)
-            in_fn = in_dir / 'total-workflow_rates.nc'
-            qfs_da = xr.open_dataset(in_fn)['sea_level_change_rate']
+        if gmsl_rsl_novlm == 'gmsl':  # GMSL
+            in_dir = AR6_DIR / 'ar6' / 'global' / 'dist_workflows' / workflow / scenario
+        elif gmsl_rsl_novlm == 'rsl':  # RSL
+            in_dir = AR6_DIR / 'ar6-regional-distributions' / 'regional' / 'dist_workflows' / workflow / scenario
+        elif gmsl_rsl_novlm == 'novlm':  # RSL
+            in_dir = (AR6_DIR / 'ar6-regional_novlm-distributions' / 'regional_novlm' / 'dist_workflows' / workflow
+                      / scenario)
         else:
-            if gmsl:  # GMSL
-                in_dir = AR6_DIR / 'ar6' / 'global' / 'dist_workflows' / workflow / scenario
-            else:  # RSL
-                in_dir = AR6_DIR / 'ar6-regional-distributions' / 'regional' / 'dist_workflows' / workflow / scenario
-            in_fn = in_dir / 'total-workflow.nc'
-            qfs_da = xr.open_dataset(in_fn)['sea_level_change']
+            raise ValueError(f"gmsl_rsl_vlm should be 'gmsl', 'rsl', or 'novlm', not '{gmsl_rsl_novlm}'.")
+        in_fn = in_dir / 'total-workflow.nc'
+        qfs_da = xr.open_dataset(in_fn)['sea_level_change']
         # Include only 21st century
         qfs_da = qfs_da.sel(years=slice(2000, 2100))
         # Exclude grid locations
-        if not gmsl:
+        if gmsl_rsl_novlm != 'gmsl':
             qfs_da = qfs_da.sel(locations=slice(0, int(1e8)))
         # Change units from mm to m
-        if not rate:
-            qfs_da = qfs_da / 1000.
-            qfs_da.attrs['units'] = 'm'
+        qfs_da = qfs_da / 1000.
+        qfs_da.attrs['units'] = 'm'
     # Case 2: lower or upper bound of low confidence p-box
     elif workflow in ['lower', 'upper']:
         # Contributing workflows (Kopp et al., GMD, 2023)
-        if not rate:
-            wf_list = ['wf_1e', 'wf_2e', 'wf_3e', 'wf_4']
-        else:
-            wf_list = ['wf_1f', 'wf_2f', 'wf_3f', 'wf_4']
+        wf_list = ['wf_1e', 'wf_2e', 'wf_3e', 'wf_4']
         # Get quantile function data for each of these workflows and scenarios
         qfs_da_list = []
         for wf in wf_list:
-            qfs_da_list.append(get_sl_qfs(workflow=wf, gmsl=gmsl, rate=rate, scenario=scenario))
+            qfs_da_list.append(get_sl_qfs(workflow=wf, gmsl_rsl_novlm=gmsl_rsl_novlm, scenario=scenario))
         concat_da = xr.concat(qfs_da_list, 'wf')
         # Find lower or upper bound
         if workflow == 'lower':
@@ -179,8 +170,8 @@ def get_sl_qfs(workflow='fusion_1e+2e', gmsl=False, rate=False, scenario='ssp585
     # Case 3: Outer bound of p-box
     elif workflow == 'outer':
         # Get data for lower and upper p-box bounds
-        lower_da = get_sl_qfs(workflow='lower', gmsl=gmsl, rate=rate, scenario=scenario)
-        upper_da = get_sl_qfs(workflow='upper', gmsl=gmsl, rate=rate, scenario=scenario)
+        lower_da = get_sl_qfs(workflow='lower', gmsl_rsl_novlm=gmsl_rsl_novlm, scenario=scenario)
+        upper_da = get_sl_qfs(workflow='upper', gmsl_rsl_novlm=gmsl_rsl_novlm, scenario=scenario)
         # Derive outer bound
         qfs_da = xr.concat([lower_da.sel(quantiles=slice(0, 0.5)),  # lower bound below median
                             upper_da.sel(quantiles=slice(0.500001, 1))],  # upper bound above median
@@ -189,8 +180,8 @@ def get_sl_qfs(workflow='fusion_1e+2e', gmsl=False, rate=False, scenario='ssp585
     # Case 4: "effective" quantile function (Rohmer et al., 2019)
     elif 'effective' in workflow:
         # Get data for lower and upper p-box bounds
-        lower_da = get_sl_qfs(workflow='lower', gmsl=gmsl, rate=rate, scenario=scenario)
-        upper_da = get_sl_qfs(workflow='upper', gmsl=gmsl, rate=rate, scenario=scenario)
+        lower_da = get_sl_qfs(workflow='lower', gmsl_rsl_novlm=gmsl_rsl_novlm, scenario=scenario)
+        upper_da = get_sl_qfs(workflow='upper', gmsl_rsl_novlm=gmsl_rsl_novlm, scenario=scenario)
         # Get constant weight w
         w = float(workflow.split('_')[-1])
         # Derive effective distribution
@@ -200,7 +191,7 @@ def get_sl_qfs(workflow='fusion_1e+2e', gmsl=False, rate=False, scenario='ssp585
         # Get quantile function data for workflows and scenarios
         qfs_da_list = []
         for wf in [f'wf_{s}' for s in workflow.split('_')[-1].split('+')]:
-            qfs_da_list.append(get_sl_qfs(workflow=wf, gmsl=gmsl, rate=rate, scenario=scenario))
+            qfs_da_list.append(get_sl_qfs(workflow=wf, gmsl_rsl_novlm=gmsl_rsl_novlm, scenario=scenario))
         concat_da = xr.concat(qfs_da_list, dim='wf')
         # Derive mean
         qfs_da = concat_da.mean(dim='wf')
@@ -211,8 +202,8 @@ def get_sl_qfs(workflow='fusion_1e+2e', gmsl=False, rate=False, scenario='ssp585
             wf = f'mean_{workflow.split("_")[-1]}'
         else:  # use single workflow for preferred workflow
             wf = f'wf_{workflow.split("_")[-1]}'
-        pref_da = get_sl_qfs(workflow=wf, gmsl=gmsl, rate=rate, scenario=scenario)
-        outer_da = get_sl_qfs(workflow='outer', gmsl=gmsl, rate=rate, scenario=scenario)
+        pref_da = get_sl_qfs(workflow=wf, gmsl_rsl_novlm=gmsl_rsl_novlm, scenario=scenario)
+        outer_da = get_sl_qfs(workflow='outer', gmsl_rsl_novlm=gmsl_rsl_novlm, scenario=scenario)
         # Weighting function, with weights depending on probability p
         w_da = get_fusion_weights()
         # Derive fusion distribution; rely on automatic broadcasting/alignment
@@ -221,10 +212,7 @@ def get_sl_qfs(workflow='fusion_1e+2e', gmsl=False, rate=False, scenario='ssp585
         qfs_da.sel(quantiles=0.5).data[:] = pref_da.sel(quantiles=0.5).data[:]
         # Include name and units
         qfs_da = qfs_da.rename('sea_level_change')
-        if not rate:
-            qfs_da.attrs['units'] = 'm'
-        else:
-            qfs_da.attrs['units'] = 'mm/year'
+        qfs_da.attrs['units'] = 'm'
     # Return result
     return qfs_da
 
@@ -240,7 +228,7 @@ def get_fusion_weights():
         DataArray of weights for preferred workflow, with weights depending on probability.
     """
     # Get a quantile function corresponding to a projection of total sea level, to use as template
-    qfs_da = get_sl_qfs(workflow='wf_1e', gmsl=True, rate=False, scenario='ssp585').copy()
+    qfs_da = get_sl_qfs(workflow='wf_1e', gmsl_rsl_novlm='gmsl', scenario='ssp585').copy()
     w_da = qfs_da.sel(years=2100).squeeze()
     # Update data to follow trapezoidal weighting function, with weights depending on probability
     da1 = w_da.sel(quantiles=slice(0, 0.169999))
