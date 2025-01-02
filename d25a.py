@@ -449,3 +449,41 @@ def fig_high_map(high_low='high'):
                         label=f'{high_low.title()}-end projection of RSL rise in 2100, m')
     cbar.ax.set_xticks(np.arange(1, 3.1, 0.2))
     return fig, ax
+
+
+def fig_country_stats(min_count=4):
+    """
+    Plot country-level median, min, and max of high-end and low-end projections for 2100.
+
+    Parameters
+    ----------
+    min_count : int
+        Minimum number of tide gauges required to plot. Default is 4.
+
+    Returns
+    -------
+    fig : figure
+    ax : Axes
+    """
+    # Create Figure and Axes
+    fig, ax = plt.subplots(1, 1, figsize=(8, 10), tight_layout=True)
+    # Get country-level stats
+    country_stats_df = get_country_stats_df()
+    # Select only countries that meet the min_count requirement
+    country_stats_df = country_stats_df.where(country_stats_df['count'] >= min_count).dropna()
+    # Sort by median and reindex
+    country_stats_df = country_stats_df.sort_values(by='high_med')
+    country_stats_df = country_stats_df.reset_index()
+    # Plot data
+    for high_low, offset, color in [('high', 0.15, 'darkred'), ('low', -0.15, 'darkgreen')]:
+        y = country_stats_df.index + offset
+        ax.scatter(x=country_stats_df[f'{high_low}_med'], y=y, color=color, label=f'{high_low.title()}-end')
+        ax.hlines(y, country_stats_df[f'{high_low}_min'], country_stats_df[f'{high_low}_max'], color=color, alpha=0.7)
+    # Tick labels etc
+    ax.legend(loc='lower right')
+    ax.set_yticks(country_stats_df.index)
+    ax.set_yticklabels(country_stats_df['country'].str.title())
+    ax.set_ylim(country_stats_df.index.min() - 0.5, country_stats_df.index.max() + 0.5)
+    ax.set_xlim(-2, 4)
+    ax.set_xlabel('RSL in 2100, m')
+    return fig, ax
