@@ -14,9 +14,11 @@ import cartopy.crs as ccrs
 from functools import cache
 import itertools
 import matplotlib.pyplot as plt
+import matplotlib.ticker as plticker
 import numpy as np
 import pandas as pd
 from pathlib import Path
+from scipy import stats
 import seaborn as sns
 from watermark import watermark
 import xarray as xr
@@ -485,3 +487,45 @@ def fig_country_stats(rsl_novlm='rsl', min_count=4):
     elif rsl_novlm == 'novlm':
         ax.set_xlabel('RSL without VLM component in 2100, m')
     return fig, ax
+
+
+def fig_rsl_vs_vlm():
+    """
+    Plot RSL vs VLM component of high-end projections for countries with the largest RSL ranges.
+
+    Returns
+    -------
+    fig : figure
+    ax : Axes
+    """
+    # Create Figure and Axes
+    fig, axs = plt.subplots(2, 3, figsize=(10, 7), tight_layout=True)
+    # Get high-end projection data and merge into single DataFrame
+    rsl_df = get_info_high_low_exceed_df(rsl_novlm='rsl')
+    novlm_df = get_info_high_low_exceed_df(rsl_novlm='novlm')
+    merged_df = pd.merge(rsl_df, novlm_df, how='inner', on='gauge_name', suffixes=('_rsl', '_novlm'))
+    # Calculate VLM contribution to high-end projection as difference between total RSL and no-VLM RSL
+    merged_df['high_vlm'] = merged_df['high_rsl'] - merged_df['high_novlm']
+    # Identify countries with largest RSL ranges
+    stats_df = get_country_stats_df(rsl_novlm='rsl')
+    stats_df['high_range'] = stats_df['high_max'] - stats_df['high_min']
+    stats_df = stats_df.sort_values('high_range', ascending=False)
+    countries = stats_df['country'][0:6]
+    # Loop over countries and subplots
+    for i, (country, ax) in enumerate(zip(countries, axs.flatten())):
+        country_df = merged_df[merged_df['country_rsl'] == country]  # select data for country
+        ax.scatter(country_df['high_vlm'], country_df['high_rsl'], marker='x')  # plot
+        r2 = stats.pearsonr(country_df['high_vlm'], country_df['high_rsl'])[0] ** 2   # coefficienct of determination
+        ax.text(0.05, 0.95, f'r$^2$ = {r2:.2f}', ha='left', va='top', transform=ax.transAxes, fontsize='large')
+        ax.set_title(f'\n({chr(97+i)}) {country.title()}')  # title
+        ax.set_aspect('equal')  # fixed aspect ratio
+        yrange = ax.get_ylim()[1] - ax.get_ylim()[0]  # range of y-axis
+        xmid = np.mean(ax.get_xlim())  # middle of x-axis
+        ax.set_xlim((xmid - yrange / 2.), (xmid + yrange / 2.))  # x-axis to cover same range as y-axis
+        ax.xaxis.set_major_locator(plticker.MultipleLocator(base=0.5))  # ticks at interval of 0.5 m
+        ax.yaxis.set_major_locator(plticker.MultipleLocator(base=0.5))
+        if i in (0, 3):
+            ax.set_ylabel('RSL, m')  # y label
+        if i in (3, 4, 5):
+            ax.set_xlabel('VLM component, m')  # x label
+    return fig, axs
