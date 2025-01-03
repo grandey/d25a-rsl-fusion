@@ -460,10 +460,11 @@ def fig_country_stats(rsl_novlm='rsl', min_count=4):
     Returns
     -------
     fig : figure
-    ax : Axes
+    (ax1, ax2) : tuple of Axes
     """
     # Create Figure and Axes
-    fig, ax = plt.subplots(1, 1, figsize=(8, 10), tight_layout=True)
+    fig, ax1 = plt.subplots(1, 1, figsize=(8, 10), tight_layout=True)
+    ax2 = ax1.twinx()  # twin axis, to split legend
     # Get country-level stats
     country_stats_df = get_country_stats_df(rsl_novlm=rsl_novlm)
     # Select only countries that meet the min_count requirement
@@ -472,23 +473,38 @@ def fig_country_stats(rsl_novlm='rsl', min_count=4):
     country_stats_df = country_stats_df.sort_values(by='high_med')
     country_stats_df = country_stats_df.reset_index()
     # Plot data
-    for high_low, offset, color in [('high', 0.15, 'darkred'), ('low', -0.15, 'darkgreen')]:
+    for high_low, offset, color, ax in [('high', 0.15, 'darkred', ax1), ('low', -0.15, 'darkgreen', ax2)]:
+        # Country-level RSL data
         y = country_stats_df.index + offset
-        ax.scatter(x=country_stats_df[f'{high_low}_med'], y=y, color=color, label=f'{high_low.title()}-end')
-        ax.hlines(y, country_stats_df[f'{high_low}_min'], country_stats_df[f'{high_low}_max'], color=color, alpha=0.7)
-    # Tick labels etc
-    ax.legend(loc='lower right')
-    ax.set_yticks(country_stats_df.index)
-    ax.set_yticklabels(country_stats_df['country'].str.title())
-    ax.set_ylim(country_stats_df.index.min() - 0.5, country_stats_df.index.max() + 0.5)
-    ax.set_xlim(-2, 4)
-    ax.xaxis.set_major_locator(plticker.MultipleLocator(base=0.5))
-    ax.tick_params(labelbottom=True, labeltop=True, labelleft=True, labelright=False)
-    if rsl_novlm == 'rsl':
-        ax.set_xlabel('RSL in 2100, m')
-    elif rsl_novlm == 'novlm':
-        ax.set_xlabel('RSL without VLM component in 2100, m')
-    return fig, ax
+        ax.scatter(x=country_stats_df[f'{high_low}_med'], y=y, color=color, label='Median')
+        ax.hlines(y, country_stats_df[f'{high_low}_min'], country_stats_df[f'{high_low}_max'], color=color, alpha=0.7,
+                  label='Range')
+        # GMSL data
+        gmsl = read_fusion_high_low(fusion_high_low=high_low, gmsl_rsl_novlm='gmsl', scenario=None).sel(years=2100).data
+        ax.axvline(gmsl, color=color, alpha=0.5, linestyle='--')
+        ax.text(gmsl+0.05, country_stats_df.index.min()-0.3, f'{high_low.title()}-end GMSL',
+                rotation=90, va='bottom', ha='left', color=color, alpha=0.5)
+        # Legend
+        if high_low == 'high':
+            ax.legend(loc='lower right', bbox_to_anchor=(1, 0.5), title=f'{high_low.title()}-end')
+        else:
+            ax.legend(loc='lower left', bbox_to_anchor=(0, 0.5), title=f'{high_low.title()}-end')
+        # Tick labels etc
+        ax.set_yticks(country_stats_df.index)
+        ax.set_yticklabels(country_stats_df['country'].str.title())
+        ax.set_ylim(country_stats_df.index.min() - 0.5, country_stats_df.index.max() + 0.5)
+        ax.set_xlim(-2, 4)
+        ax.xaxis.set_major_locator(plticker.MultipleLocator(base=0.5))
+        if high_low == 'high':
+            ax.tick_params(labelbottom=True, labeltop=True, labelleft=False, labelright=True,
+                           bottom=False, top=False, right=False, left=False)
+            if rsl_novlm == 'rsl':
+                ax.set_xlabel('RSL in 2100, m')
+            elif rsl_novlm == 'novlm':
+                ax.set_xlabel('RSL without VLM component in 2100, m')
+        else:
+            ax.axis('off')
+    return fig, (ax1, ax2)
 
 
 def fig_rsl_vs_vlm():
