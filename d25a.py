@@ -441,7 +441,7 @@ def fig_high_map(high_low='high'):
     plt.scatter(proj_df['lon'], proj_df['lat'], c=proj_df[high_low], s=10, marker='o', edgecolors='1.',
                 linewidths=0.5, vmin=1, vmax=3, cmap=cmap, zorder=2)
     cbar = plt.colorbar(orientation='horizontal', extend='both', pad=0.1,
-                        label=f'{high_low.title()}-end projection of RSL rise in 2100, m')
+                        label=f'{high_low.title()}-end projection of RSL in 2100, m')
     cbar.ax.set_xticks(np.arange(1, 3.1, 0.2))
     return fig, ax
 
@@ -482,6 +482,8 @@ def fig_country_stats(rsl_novlm='rsl', min_count=4):
     ax.set_yticklabels(country_stats_df['country'].str.title())
     ax.set_ylim(country_stats_df.index.min() - 0.5, country_stats_df.index.max() + 0.5)
     ax.set_xlim(-2, 4)
+    ax.xaxis.set_major_locator(plticker.MultipleLocator(base=0.5))
+    ax.tick_params(labelbottom=True, labeltop=True, labelleft=True, labelright=False)
     if rsl_novlm == 'rsl':
         ax.set_xlabel('RSL in 2100, m')
     elif rsl_novlm == 'novlm':
@@ -496,7 +498,7 @@ def fig_rsl_vs_vlm():
     Returns
     -------
     fig : figure
-    ax : Axes
+    axs : array of Axes
     """
     # Create Figure and Axes
     fig, axs = plt.subplots(2, 3, figsize=(10, 7), tight_layout=True)
