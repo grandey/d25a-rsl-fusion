@@ -366,7 +366,7 @@ def fig_fusion_timeseries(gauge=None):
     fig : figure
     axs : array of Axes
     """
-    # Create Figure and Axes
+    # Create figure and axes
     fig, axs = plt.subplots(1, 2, figsize=(8, 3), sharex=False, sharey=True, tight_layout=True)
     # Loop over scenarios and axes
     for i, (scenario, ax) in enumerate(zip(['ssp585', 'ssp126'], axs)):
@@ -462,7 +462,7 @@ def fig_country_stats(rsl_novlm='rsl', min_count=4):
     fig : figure
     (ax1, ax2) : tuple of Axes
     """
-    # Create Figure and Axes
+    # Create figure and axes
     fig, ax1 = plt.subplots(1, 1, figsize=(8, 10), tight_layout=True)
     ax2 = ax1.twinx()  # twin axis, to split legend
     # Get country-level stats
@@ -516,7 +516,7 @@ def fig_rsl_vs_vlm():
     fig : figure
     axs : array of Axes
     """
-    # Create Figure and Axes
+    # Create figure and axes
     fig, axs = plt.subplots(2, 3, figsize=(10, 7), tight_layout=True)
     # Get high-end projection data and merge into single DataFrame
     rsl_df = get_info_high_low_exceed_df(rsl_novlm='rsl')
@@ -547,3 +547,29 @@ def fig_rsl_vs_vlm():
         if i in (3, 4, 5):
             ax.set_xlabel('VLM component, m')  # x label
     return fig, axs
+
+def fig_p_exceed():
+    """
+    Plot histogram showing probability of exceeding high-end projection at tide gauge locations.
+
+    Returns
+    -------
+    fig : figure
+    ax : Axes
+    """
+    # Create figure and axes
+    fig, ax = plt.subplots(1, 1, figsize=(5, 3.5), tight_layout=True)
+    # Get high-end projection data
+    proj_df = get_info_high_low_exceed_df(rsl_novlm='rsl')
+    # Loop over scenarios and plot
+    for scenario, binrange, color in [('ssp585', (-0.05, 5.25), 'red'), ('ssp126', (0, 5.2), 'blue')]:
+        sns.histplot(proj_df[f'p_ex_high_{scenario}']*100, binwidth=0.1, binrange=binrange, stat='count',
+                     label=SSP_LABEL_DICT[scenario], color=color, ax=ax)
+    # Customise axes etc
+    plt.xlim([0, 5.1])
+    ax.xaxis.set_major_locator(plticker.MultipleLocator(base=0.5))
+    ax.yaxis.set_major_locator(plticker.MultipleLocator(base=100))
+    plt.xlabel('Probability of exceeding high-end projection, %')
+    plt.ylabel('Number of tide gauge locations')
+    plt.legend()
+    return fig, ax
