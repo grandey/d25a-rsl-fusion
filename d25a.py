@@ -367,7 +367,7 @@ def fig_fusion_timeseries(gauge=None):
     axs : array of Axes
     """
     # Create figure and axes
-    fig, axs = plt.subplots(1, 2, figsize=(8, 3), sharex=False, sharey=True, tight_layout=True)
+    fig, axs = plt.subplots(1, 2, figsize=(8.5, 3), sharex=False, sharey=True, tight_layout=True)
     # Loop over scenarios and axes
     for i, (scenario, ax) in enumerate(zip(['ssp585', 'ssp126'], axs)):
         # Plot median, likely range, and very likely range of fusion
@@ -376,8 +376,7 @@ def fig_fusion_timeseries(gauge=None):
         else:
             qfs_da = read_fusion_high_low(fusion_high_low='fusion', gmsl_rsl_novlm='rsl', scenario=scenario)
             qfs_da = qfs_da.sel(locations=get_gauge_info(gauge=gauge)['gauge_id']).squeeze()
-        ax.plot(qfs_da['years'], qfs_da.sel(quantiles=0.5), color='turquoise', alpha=1,
-                label=f'Median projection')
+        ax.plot(qfs_da['years'], qfs_da.sel(quantiles=0.5), color='turquoise', alpha=1, label=f'Median')
         ax.fill_between(qfs_da['years'], qfs_da.sel(quantiles=0.17), qfs_da.sel(quantiles=0.83), color='turquoise',
                         alpha=0.4, label='Likely range')
         ax.fill_between(qfs_da['years'], qfs_da.sel(quantiles=0.83), qfs_da.sel(quantiles=0.95), color='turquoise',
@@ -441,7 +440,7 @@ def fig_high_map(high_low='high'):
     plt.scatter(proj_df['lon'], proj_df['lat'], c=proj_df[high_low], s=10, marker='o', edgecolors='1.',
                 linewidths=0.5, vmin=1, vmax=3, cmap=cmap, zorder=2)
     cbar = plt.colorbar(orientation='horizontal', extend='both', pad=0.1,
-                        label=f'{high_low.title()}-end projection of RSL in 2100, m')
+                        label=f'{high_low.title()}-end RSL in 2100, m')
     cbar.ax.set_xticks(np.arange(1, 3.1, 0.2))
     return fig, ax
 
@@ -532,7 +531,7 @@ def fig_rsl_vs_vlm():
     # Loop over countries and subplots
     for i, (country, ax) in enumerate(zip(countries, axs.flatten())):
         country_df = merged_df[merged_df['country_rsl'] == country]  # select data for country
-        ax.scatter(country_df['high_vlm'], country_df['high_rsl'], marker='x')  # plot
+        ax.scatter(country_df['high_vlm'], country_df['high_rsl'], marker='x', color='darkred', alpha=0.5)  # plot
         r2 = stats.pearsonr(country_df['high_vlm'], country_df['high_rsl'])[0] ** 2   # coefficienct of determination
         ax.text(0.05, 0.95, f'r$^2$ = {r2:.2f}', ha='left', va='top', transform=ax.transAxes, fontsize='large')
         ax.set_title(f'\n({chr(97+i)}) {country.title()}')  # title
@@ -543,7 +542,7 @@ def fig_rsl_vs_vlm():
         ax.xaxis.set_major_locator(plticker.MultipleLocator(base=0.5))  # ticks at interval of 0.5 m
         ax.yaxis.set_major_locator(plticker.MultipleLocator(base=0.5))
         if i in (0, 3):
-            ax.set_ylabel('RSL, m')  # y label
+            ax.set_ylabel('High-end RSL in 2100, m')  # y label
         if i in (3, 4, 5):
             ax.set_xlabel('VLM component, m')  # x label
     return fig, axs
@@ -570,7 +569,7 @@ def fig_p_exceed():
     plt.xlim([0, 5.1])
     ax.xaxis.set_major_locator(plticker.MultipleLocator(base=0.5))
     ax.yaxis.set_major_locator(plticker.MultipleLocator(base=100))
-    plt.xlabel('Probability of exceeding high-end projection, %')
+    plt.xlabel('Probability of exceeding high-end RSL, %')
     plt.ylabel('Number of tide gauge locations')
     plt.legend()
     return fig, ax
