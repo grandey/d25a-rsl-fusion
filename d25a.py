@@ -6,7 +6,7 @@ Author:
     Benjamin S. Grandey, 2024–2025.
 
 Notes:
-    Much of this code is based on Grandey et al.'s d23a-fusion repository, https://doi.org/10.5281/zenodo.13627262.
+    Much of this code is based on the d23a-fusion repository, https://doi.org/10.5281/zenodo.13627262.
 """
 
 
@@ -548,6 +548,7 @@ def fig_rsl_vs_vlm():
             ax.set_xlabel('VLM component, m')  # x label
     return fig, axs
 
+
 def fig_p_exceed():
     """
     Plot histogram showing probability of exceeding high-end projection at tide gauge locations.
@@ -573,3 +574,51 @@ def fig_p_exceed():
     plt.ylabel('Number of tide gauge locations')
     plt.legend()
     return fig, ax
+
+
+def name_save_fig(fig, fso='o', exts=('pdf', 'png'), close=False):
+    """
+    Name and save a figure, then increase counter.
+
+    Parameters
+    ----------
+    fig : Figure
+        Figure to save.
+    fso : str
+        Figure type. Either 'f' (main), 's' (supplement), or 'o' (other; default).
+    exts : tuple
+        Extensions to use. Default is ('pdf', 'png').
+    close : bool
+        Suppress output in notebook? Default is False.
+
+    Returns
+    -------
+    fig_name : str
+        Name of figure.
+
+    Notes
+    -----
+    This function follows the version in the d23b-ice-dependence repository, building on d22a-mcdc and d23a-fusion.
+    """
+    # Name based on counter, then update counter (in preparation for next figure)
+    if fso == 'f':
+        fig_name = f'fig{next(F_NUM):02}'
+    elif fso == 's':
+        fig_name = f's{next(S_NUM):02}'
+    else:
+        fig_name = f'o{next(O_NUM):02}'
+    # File location based on extension(s)
+    for ext in exts:
+        # Sub-directory
+        sub_dir = FIG_DIR.joinpath(f'{fso}_{ext}')
+        sub_dir.mkdir(exist_ok=True)
+        # Save
+        fig_path = sub_dir.joinpath(f'{fig_name}.{ext}')
+        fig.savefig(fig_path)
+        # Print file name and size
+        fig_size = fig_path.stat().st_size / 1024 / 1024  # bytes -> MB
+        print(f'Written {fig_name}.{ext} ({fig_size:.2f} MB)')
+    # Suppress output in notebook?
+    if close:
+        plt.close()
+    return fig_name
