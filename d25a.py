@@ -319,6 +319,40 @@ def get_info_high_low_exceed_df(rsl_novlm='rsl'):
 
 
 @cache
+def get_summary_df():
+    """
+    Return DataFrame summarising some of the key results.
+
+    Returns
+    -------
+    summary_df : DataFrame
+    """
+    # Create DataFrame
+    columns = ['low', 'central', 'high']
+    summary_df = pd.DataFrame(columns=columns)
+    # Loop over columns
+    for col in ['low', 'central', 'high']:
+        # GMSL
+        gmsl_da = read_fusion_high_low(fusion_high_low=col, gmsl_rsl_novlm='gmsl', scenario=None).sel(years=2100)
+        summary_df.loc['GMSL', col] = f'{gmsl_da.data:.1f} m'
+        # RSL
+        rsl_se = get_info_high_low_exceed_df(rsl_novlm='rsl')[col]
+        summary_df.loc['RSL median', col] = f'{rsl_se.median():.1f} m'
+        summary_df.loc['RSL IQR', col] = f'{rsl_se.quantile(0.25):.1f} to {rsl_se.quantile(0.75):.1f} m'
+        summary_df.loc['RSL range', col] = f'{rsl_se.min():.1f} to {rsl_se.max():.1f} m'
+        # Probability of exceeding projection under different scenarios
+        for scenario in ['ssp585', 'ssp126']:
+            prob_se = get_info_high_low_exceed_df(rsl_novlm='rsl')[f'p_ex_{col}_{scenario}']
+            summary_df.loc[f'P(RSL > projection | {SSP_LABEL_DICT[scenario]}) median', col] = \
+                f'{prob_se.median()*100:.1f} %'
+            summary_df.loc[f'P(RSL > projection | {SSP_LABEL_DICT[scenario]}) IQR', col] = \
+                f'{prob_se.quantile(0.25)*100:.1f} to {prob_se.quantile(0.75)*100:.1f} %'
+            summary_df.loc[f'P(RSL > projection | {SSP_LABEL_DICT[scenario]}) range', col] = \
+                f'{prob_se.min()*100:.1f} to {prob_se.max()*100:.1f} %'
+    return summary_df
+
+
+@cache
 def get_country_stats_df(rsl_novlm='rsl'):
     """
     Return country-level statistics across gauges for high-end, low-end, and central projections for 2100.
