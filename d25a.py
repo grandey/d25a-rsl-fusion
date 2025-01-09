@@ -120,7 +120,7 @@ def get_sl_qfs(workflow='fusion_1e+2e', gmsl_rsl_novlm='rsl', scenario='ssp585')
         Return global mean sea level ('gmsl'), relative sea level (RSL) at gauge locations ('rsl'; default), or
         RSL without the background component ('novlm').
     scenario : str
-        Options are 'ssp585' (default) or 'ssp126'.
+        Options are 'ssp585' (default), 'ssp126', or 'ssp245'.
 
     Returns
     -------
