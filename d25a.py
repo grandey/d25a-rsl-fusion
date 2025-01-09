@@ -255,11 +255,12 @@ def read_fusion_high_low(fusion_high_low='fusion', gmsl_rsl_novlm='rsl', scenari
     Parameters
     ----------
     fusion_high_low : str
-        Choose whether to read full fusion ('fusion'), high-end ('high'), or low-end ('low') projection.
+        Choose whether to read full fusion ('fusion'), high-end ('high'), low-end ('low'), or central ('central')
+        projection.
     gmsl_rsl_novlm : str
         Global mean sea level ('gmsl'), RSL ('rsl'; default), or RSL without the background component ('novlm').
     scenario : str or None
-        If reading fusion, options are 'ssp585' or 'ssp126'. Ignored for high-end or low-end.
+        If reading fusion, options are 'ssp585' or 'ssp126'. Ignored for high-end, low-end, and central.
 
     Returns
     -------
@@ -269,7 +270,7 @@ def read_fusion_high_low(fusion_high_low='fusion', gmsl_rsl_novlm='rsl', scenari
     # File to read
     if fusion_high_low == 'fusion':
         in_fn = DATA_DIR / f'{gmsl_rsl_novlm}_fusion_{scenario}_d25a.nc'
-    elif fusion_high_low in ['high', 'low']:
+    elif fusion_high_low in ['high', 'low', 'central']:
         in_fn = DATA_DIR / f'{gmsl_rsl_novlm}_{fusion_high_low}_d25a.nc'
     # Read data
     proj_da = xr.open_dataset(in_fn)['sea_level_change']
@@ -279,7 +280,7 @@ def read_fusion_high_low(fusion_high_low='fusion', gmsl_rsl_novlm='rsl', scenari
 @cache
 def get_info_high_low_exceed_df(rsl_novlm='rsl'):
     """
-    Return gauge info, high-end low-end projection for 2100, and the probabilities of exceeding these.
+    Return gauge info, high-end, low-end, and central projection for 2100, and the probabilities of exceeding these.
 
     Parameters
     ----------
@@ -290,25 +291,25 @@ def get_info_high_low_exceed_df(rsl_novlm='rsl'):
     -------
     proj_df : DataFrame
         DataFrame containing gauge_id, gauge_name, lat, lon, country, high, low, p_ex_high_ssp585, p_ex_high_ssp126,
-        p_ex_low_ssp585, p_ex_low_ssp126
+        p_ex_low_ssp585, p_ex_low_ssp126, p_ex_central_ssp585, p_ex_central_ssp126.
     """
     # Read gauge info
     proj_df = pd.read_csv(DATA_DIR / 'gauge_info_d25a.csv').set_index('gauge_id')
-    # Read high-end and low-end projections for the year 2100
-    for high_low in ['high', 'low']:
+    # Read high-end, low-end, and central projections for the year 2100
+    for high_low in ['high', 'low', 'central']:
         temp_da = read_fusion_high_low(fusion_high_low=high_low, gmsl_rsl_novlm=rsl_novlm, scenario=None)
         temp_ser = temp_da.sel(years=2100).rename({'locations': 'gauge_id'}).to_series().rename(high_low)
         proj_df = pd.merge(proj_df, temp_ser, on='gauge_id')
-    # Probability of exceeding high-end and low-end projections under different scenarios
-    for high_low in ['high', 'low']:
+    # Probability of exceeding high-end, low-end, and central projections under different scenarios
+    for high_low in ['high', 'low', 'central']:
         for scenario in ['ssp585', 'ssp126']:
             # Get and linearly interpolate quantile functions for fusion under specified scenario in 2100
             fusion_da = read_fusion_high_low(fusion_high_low='fusion', gmsl_rsl_novlm=rsl_novlm, scenario=scenario
                                              ).sel(years=2100)
             fusion_da = fusion_da.interp(quantiles=np.linspace(0, 1, 20001), method='linear')  # interval of 0.005%
-            # Get high-end or low-end projection
+            # Get high-end, low-end, or central projection
             high_low_da = read_fusion_high_low(fusion_high_low=high_low, gmsl_rsl_novlm=rsl_novlm, scenario=None)
-            # Find approximate probability of exceeding high-end or low-end projection
+            # Find approximate probability of exceeding projection
             p_ex_da = (fusion_da > high_low_da).mean(dim='quantiles')
             p_ex_da = p_ex_da.round(decimals=4)  # round to nearest 0.01%
             p_ex_ser = p_ex_da.sel(years=2100).rename({'locations': 'gauge_id'}).to_series()
@@ -320,7 +321,7 @@ def get_info_high_low_exceed_df(rsl_novlm='rsl'):
 @cache
 def get_country_stats_df(rsl_novlm='rsl'):
     """
-    Return country-level statistics across gauges for high- and low-end projections for 2100.
+    Return country-level statistics across gauges for high-end, low-end, and central projections for 2100.
 
     Parameters
     ----------
@@ -330,7 +331,8 @@ def get_country_stats_df(rsl_novlm='rsl'):
     Returns
     -------
     country_stats_df : DataFrame
-        DataFrame containing country, count (number of gauges), high_med, high_min, high_max, low_med, low_min, low_max.
+        DataFrame containing country, count (number of gauges), high_med, high_min, high_max, low_med, low_min, low_max,
+        central_med, central_min, central_max.
     """
     # Get high-end and low-end projections for 2100
     proj_df = get_info_high_low_exceed_df(rsl_novlm=rsl_novlm)
@@ -340,11 +342,12 @@ def get_country_stats_df(rsl_novlm='rsl'):
     min_df = proj_df.groupby('country').min(numeric_only=True)
     max_df = proj_df.groupby('country').max(numeric_only=True)
     # Save country-level stats to new DataFrame
-    columns = ['country', 'count', 'high_med', 'high_min', 'high_max', 'low_med', 'low_min', 'low_max']
+    columns = ['country', 'count', 'high_med', 'high_min', 'high_max', 'low_med', 'low_min', 'low_max',
+               'central_med', 'central_min', 'central_max']
     country_stats_df = pd.DataFrame(columns=columns)
     country_stats_df['country'] = count_df.index
     country_stats_df['count'] = count_df['high'].values
-    for high_low in ['high', 'low']:
+    for high_low in ['high', 'low', 'central']:
         country_stats_df[f'{high_low}_med'] = med_df[high_low].values
         country_stats_df[f'{high_low}_min'] = min_df[high_low].values
         country_stats_df[f'{high_low}_max'] = max_df[high_low].values
@@ -447,7 +450,7 @@ def fig_high_map(high_low='high'):
 
 def fig_country_stats(rsl_novlm='rsl', min_count=4):
     """
-    Plot country-level median, min, and max of high-end and low-end projections for 2100.
+    Plot country-level median, min, and max of high-end, low-end, and central projections for 2100.
 
     Parameters
     ----------
@@ -462,8 +465,9 @@ def fig_country_stats(rsl_novlm='rsl', min_count=4):
     (ax1, ax2) : tuple of Axes
     """
     # Create figure and axes
-    fig, ax1 = plt.subplots(1, 1, figsize=(8, 10), tight_layout=True)
+    fig, ax1 = plt.subplots(1, 1, figsize=(10, 12), tight_layout=True)
     ax2 = ax1.twinx()  # twin axis, to split legend
+    ax3 = ax1.twinx()  # twin axis, to split legend
     # Get country-level stats
     country_stats_df = get_country_stats_df(rsl_novlm=rsl_novlm)
     # Select only countries that meet the min_count requirement
@@ -472,22 +476,29 @@ def fig_country_stats(rsl_novlm='rsl', min_count=4):
     country_stats_df = country_stats_df.sort_values(by='high_med')
     country_stats_df = country_stats_df.reset_index()
     # Plot data
-    for high_low, offset, color, ax in [('high', 0.15, 'darkred', ax1), ('low', -0.15, 'darkgreen', ax2)]:
+    for high_low, offset, color, ax in [('high', 0.2, 'darkred', ax1), ('central', 0, 'lightblue', ax2),
+                                        ('low', -0.2, 'darkgreen', ax3)]:
         # Country-level RSL data
         y = country_stats_df.index + offset
-        ax.scatter(x=country_stats_df[f'{high_low}_med'], y=y, color=color, label='Median')
+        ax.scatter(x=country_stats_df[f'{high_low}_med'], y=y, color=color, label='Median', s=15)
         ax.hlines(y, country_stats_df[f'{high_low}_min'], country_stats_df[f'{high_low}_max'], color=color, alpha=0.7,
                   label='Range')
         # GMSL data
         gmsl = read_fusion_high_low(fusion_high_low=high_low, gmsl_rsl_novlm='gmsl', scenario=None).sel(years=2100).data
         ax.axvline(gmsl, color=color, alpha=0.5, linestyle='--')
-        ax.text(gmsl+0.05, country_stats_df.index.min()-0.3, f'{high_low.title()}-end GMSL',
+        if high_low == 'high':
+            label = f'{high_low.title()}-end GMSL'
+        else:
+            label = None
+        ax.text(gmsl+0.05, country_stats_df.index.min()-0.3, label,
                 rotation=90, va='bottom', ha='left', color=color, alpha=0.5)
         # Legend
         if high_low == 'high':
             ax.legend(loc='lower right', bbox_to_anchor=(1, 0.5), title=f'{high_low.title()}-end')
-        else:
+        elif high_low == 'low':
             ax.legend(loc='lower left', bbox_to_anchor=(0, 0.5), title=f'{high_low.title()}-end')
+        else:
+            ax.legend(loc='upper left', bbox_to_anchor=(0, 0.45), title=f'{high_low.title()}')
         # Tick labels etc
         ax.set_yticks(country_stats_df.index)
         ax.set_yticklabels(country_stats_df['country'].str.title())
