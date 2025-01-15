@@ -608,9 +608,10 @@ def fig_p_exceed():
     # Get high-end projection data
     proj_df = get_info_high_low_exceed_df(rsl_novlm='rsl')
     # Loop over scenarios and plot
-    for scenario, binrange, color in [('ssp585', (-0.05, 5.25), 'red'), ('ssp126', (0, 5.2), 'blue')]:
+    for scenario, binrange, color, hatch in [('ssp585', (-0.05, 5.25), 'darkred', '/'),
+                                             ('ssp126', (0, 5.2), 'green', None)]:
         sns.histplot(proj_df[f'p_ex_high_{scenario}']*100, binwidth=0.1, binrange=binrange, stat='count',
-                     label=SSP_LABEL_DICT[scenario], color=color, ax=ax)
+                     label=SSP_LABEL_DICT[scenario], color=color, hatch=hatch, ax=ax)
     # Customise axes etc
     plt.xlim([0, 5.1])
     ax.xaxis.set_major_locator(plticker.MultipleLocator(base=0.5))
