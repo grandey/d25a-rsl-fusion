@@ -388,7 +388,7 @@ def get_country_stats_df(rsl_novlm='rsl'):
     return country_stats_df
 
 
-def fig_fusion_timeseries(gauge=None):
+def fig_fusion_timeseries(gauge='TANJONG_PAGAR', gmsl_rsl_novlm='rsl'):
     """
     Plot time series of median, likely range, and very likely range of sea level for (a) SSP5-8.5 and (b) SSP1-2.6.
     Also plot high-end and low-end projections.
@@ -396,7 +396,9 @@ def fig_fusion_timeseries(gauge=None):
     Parameters
     ----------
     gauge : int, str, or None.
-        ID or name of gauge. If None (default), then use global mean.
+        ID or name of gauge. Default is 'TANJONG_PAGAR'. Ignored if gmsl_rsl_novlm is 'gmsl'.
+    gmsl_rsl_novlm : str
+        Global mean sea level ('gmsl'), RSL ('rsl'; default), or RSL without the background component ('novlm').
 
     Returns
     -------
@@ -408,10 +410,10 @@ def fig_fusion_timeseries(gauge=None):
     # Loop over scenarios and axes
     for i, (scenario, ax) in enumerate(zip(['ssp585', 'ssp126'], axs)):
         # Plot median, likely range, and very likely range of fusion
-        if gauge is None:
+        if gmsl_rsl_novlm == 'gmsl':
             qfs_da = read_fusion_high_low(fusion_high_low='fusion', gmsl_rsl_novlm='gmsl', scenario=scenario).squeeze()
         else:
-            qfs_da = read_fusion_high_low(fusion_high_low='fusion', gmsl_rsl_novlm='rsl', scenario=scenario)
+            qfs_da = read_fusion_high_low(fusion_high_low='fusion', gmsl_rsl_novlm=gmsl_rsl_novlm, scenario=scenario)
             qfs_da = qfs_da.sel(locations=get_gauge_info(gauge=gauge)['gauge_id']).squeeze()
         ax.plot(qfs_da['years'], qfs_da.sel(quantiles=0.5), color='turquoise', alpha=1, label=f'Median')
         ax.fill_between(qfs_da['years'], qfs_da.sel(quantiles=0.17), qfs_da.sel(quantiles=0.83), color='turquoise',
@@ -427,23 +429,22 @@ def fig_fusion_timeseries(gauge=None):
         elif scenario == 'ssp126':
             high_low = 'low'
             color = 'darkgreen'
-        if gauge is None:
-            proj_da = read_fusion_high_low(fusion_high_low=high_low, gmsl_rsl_novlm='gmsl', scenario=None)
-        else:
-            proj_da = read_fusion_high_low(fusion_high_low=high_low, gmsl_rsl_novlm='rsl', scenario=None)
+        proj_da = read_fusion_high_low(fusion_high_low=high_low, gmsl_rsl_novlm=gmsl_rsl_novlm, scenario=None)
+        if gmsl_rsl_novlm != 'gmsl':
             proj_da = proj_da.sel(locations=get_gauge_info(gauge=gauge)['gauge_id']).squeeze()
-        ax.plot(proj_da['years'], proj_da, color=color, alpha=1,
-                label=f'{high_low.title()}-end projection')
+        ax.plot(proj_da['years'], proj_da, color=color, alpha=1, label=f'{high_low.title()}-end projection')
         # Customise plot
         ax.set_title(f'({chr(97+i)}) {SSP_LABEL_DICT[scenario]}')
         ax.legend(loc='upper left')
         ax.set_xlim([2020, 2100])
         ax.set_xlabel('Year')
         if i == 0:
-            if gauge is None:
+            if gmsl_rsl_novlm == 'gmsl':
                 ax.set_ylabel('GMSL, m')
-            else:
+            elif gmsl_rsl_novlm == 'rsl':
                 ax.set_ylabel(f'RSL at {gauge.replace("_", " ").title()}, m')
+            elif gmsl_rsl_novlm == 'novlm':
+                ax.set_ylabel(f'RSL without VLM at {gauge.replace("_", " ").title()}, m')
         if i == 1:
             ax.tick_params(axis='y', labelright=True)
     return fig, axs
