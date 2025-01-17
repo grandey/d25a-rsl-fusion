@@ -12,6 +12,7 @@ dependencies:
   - notebook
   - numpy
   - pandas
+  - xlrd
   - xarray
   - NetCDF4
   - matplotlib

@@ -46,6 +46,15 @@ curl "https://psmsl.org/data/obtaining/nucat.dat" -O
 cd ..
 ```
 
+The United Nations Department of Economic and Social Affairs [World Urbanisation Prospects 2018](https://population.un.org/wup/downloads?tab=Urban%20Agglomerations) File 12 contains the population and locations of cities (urban agglomerations):
+
+```
+mkdir data_wup18
+cd data_wup18
+curl "https://population.un.org/wup/assets/Download/WUP2018-F12-Cities_Over_300K.xls" -O
+cd ..
+```
+
 ### 3. Produce data for fusion, high-end, and low-end projections
 [**`data_d25a.ipynb`**](data_d25a.ipynb) uses the input data to produce the fusion, high-end, and low-end projections, which are saved to [**`data_fusion/`**](data_fusion/).
 
