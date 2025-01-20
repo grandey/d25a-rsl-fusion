@@ -278,7 +278,7 @@ def read_fusion_high_low(fusion_high_low='fusion', gmsl_rsl_novlm='rsl', scenari
 
 
 @cache
-def get_info_high_low_exceed_df(rsl_novlm='rsl'):
+def get_info_high_low_exceed_df(rsl_novlm='rsl', cities=False):
     """
     Return gauge info, high-end, low-end, and central projection for 2100, and the probabilities of exceeding these.
 
@@ -286,6 +286,8 @@ def get_info_high_low_exceed_df(rsl_novlm='rsl'):
     ----------
     rsl_novlm : str
         RSL ('rsl'; default) or RSL without the background component ('novlm').
+    cities : bool
+        If True, return data for large cities. If False (default), return data for all available gauges.
 
     Returns
     -------
@@ -315,13 +317,20 @@ def get_info_high_low_exceed_df(rsl_novlm='rsl'):
             p_ex_ser = p_ex_da.sel(years=2100).rename({'locations': 'gauge_id'}).to_series()
             p_ex_ser = p_ex_ser.rename(f'p_ex_{high_low}_{scenario}')
             proj_df = pd.merge(proj_df, p_ex_ser, on='gauge_id')
+    # Limit data to large cities?
+    if cities:
+        # Read cities info, use gauge_id as index, and select subset of columns to use
+        cities_df = pd.read_csv(DATA_DIR / 'cities_d25a.csv').set_index('gauge_id')
+        cities_df = cities_df[['city_country', 'city_name', 'city_lat', 'city_lon', 'distance']]
+        # Find intersection of cities and projections at gauges and concatenate
+        proj_df = pd.concat([proj_df, cities_df], axis=1, join='inner')
     return proj_df
 
 
 @cache
 def get_summary_df():
     """
-    Return DataFrame summarising some of the key results.
+    Return DataFrame summarising some of the key results across gauges.
 
     Returns
     -------
@@ -450,7 +459,7 @@ def fig_fusion_timeseries(gauge='TANJONG_PAGAR', gmsl_rsl_novlm='rsl'):
     return fig, axs
 
 
-def fig_high_map(high_low='high'):
+def fig_high_map(high_low='high', cities=False):
     """
     Plot map of high-end or low-end projection.
 
@@ -458,6 +467,8 @@ def fig_high_map(high_low='high'):
     ----------
     high_low : str
         Choose whether to plot high-end ('high'; default) or low-end ('low') projection.
+    cities : bool
+        If True, plot data for large cities. If False (default), plot data for all available gauges.
 
     Returns
     -------
@@ -472,7 +483,7 @@ def fig_high_map(high_low='high'):
     gl.right_labels = False
     ax.coastlines(zorder=1)
     # Read and plot projection data
-    proj_df = get_info_high_low_exceed_df(rsl_novlm='rsl')
+    proj_df = get_info_high_low_exceed_df(rsl_novlm='rsl', cities=cities)
     cmap = plt.get_cmap('viridis', 10)
     cmap.set_over('orange')
     plt.scatter(proj_df['lon'], proj_df['lat'], c=proj_df[high_low], s=10, marker='o', edgecolors='1.',
