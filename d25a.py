@@ -494,6 +494,57 @@ def fig_high_map(high_low='high', cities=False):
     return fig, ax
 
 
+def fig_city_proj():
+    """
+    Plot high-end, low-end, and central RSL projections for 2100 for large coastal cities.
+
+    Returns
+    -------
+    fig : figure
+    ax: Axes
+    """
+    # Create figure and axes
+    fig, ax = plt.subplots(1, 1, figsize=(10, 10), tight_layout=True)
+    # Get RSL and no-VLM projections for cities
+    rsl_df = get_info_high_low_exceed_df(rsl_novlm='rsl', cities=True)  # RSL
+    novlm_df = get_info_high_low_exceed_df(rsl_novlm='novlm', cities=True)  # RSL without VLM
+    proj_df = pd.merge(rsl_df, novlm_df, how='inner', on='city_name', suffixes=(None, '_novlm'))
+    # Sort by high-end RSL
+    proj_df = proj_df.sort_values(by='high')
+    proj_df = proj_df.reset_index()
+    # Plot data
+    for col, label, color, marker in [('high', 'High-end', 'darkred', 'o'),
+                                      ('central', 'Central', 'lightblue', 'o'),
+                                      ('low', 'Low-end', 'darkgreen', 'o')]:
+        # Plot RSL data
+        ax.scatter(x=proj_df[col], y=proj_df.index, color=color, label=label, marker=marker, s=20)
+        # Plot GMSL data
+        gmsl = read_fusion_high_low(fusion_high_low=col, gmsl_rsl_novlm='gmsl', scenario=None ).sel(years=2100).data
+        ax.axvline(gmsl, color=color, alpha=0.5, linestyle='--')
+        if col == 'high':
+            label2 = f'High-end GMSL'
+        else:
+            label2 = None
+        ax.text(gmsl+0.05, proj_df.index.min()-0.3, label2,
+                rotation=90, va='bottom', ha='left', color=color, alpha=0.5)
+        # Plot VLM component
+        if col == 'high':
+            ax.hlines(proj_df.index, proj_df[f'{col}_novlm'], proj_df[col], color=color, alpha=0.7,
+                      label='VLM component')
+    # Legend
+    ax.legend(loc='lower right', bbox_to_anchor=(1, 0.15), title=None)
+    # Tick labels etc
+    ax.set_yticks(proj_df.index)
+    ax.set_yticklabels(proj_df['city_name'].str.title() + ', ' + proj_df['country'].str.title())
+    ax.set_ylim(proj_df.index.min() - 0.5, proj_df.index.max() + 0.5)
+    ax.set_xlim(-0.5, 3.5)
+    ax.xaxis.set_major_locator(plticker.MultipleLocator(base=0.5))
+    ax.tick_params(labelbottom=True, labeltop=True, labelleft=False, labelright=True,
+                   bottom=False, top=False, right=False, left=False)
+    ax.set_xlabel('RSL in 2100, m')
+    return fig, ax
+
+
 def fig_country_stats(rsl_novlm='rsl', min_count=4):
     """
     Plot country-level median, min, and max of high-end, low-end, and central projections for 2100.
