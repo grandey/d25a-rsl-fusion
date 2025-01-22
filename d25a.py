@@ -400,11 +400,21 @@ def get_country_stats_df(rsl_novlm='rsl'):
     med_df = proj_df.groupby('country').median(numeric_only=True)
     min_df = proj_df.groupby('country').min(numeric_only=True)
     max_df = proj_df.groupby('country').max(numeric_only=True)
+    # Reformat names of countries (for 'country2' column, used when plotting)
+    countries = []
+    for s in count_df.index:
+        if ', ' in s:
+            s = ' '.join(s.split(', ')[::-1])
+        s = s.title()
+        s = s.replace("Of", "of")
+        s = s.replace("The", "the")
+        countries.append(s)
     # Save country-level stats to new DataFrame
-    columns = ['country', 'count', 'high_med', 'high_min', 'high_max', 'low_med', 'low_min', 'low_max',
+    columns = ['country', 'country2', 'count', 'high_med', 'high_min', 'high_max', 'low_med', 'low_min', 'low_max',
                'central_med', 'central_min', 'central_max']
     country_stats_df = pd.DataFrame(columns=columns)
     country_stats_df['country'] = count_df.index
+    country_stats_df['country2'] = countries
     country_stats_df['count'] = count_df['high'].values
     for high_low in ['high', 'low', 'central']:
         country_stats_df[f'{high_low}_med'] = med_df[high_low].values
@@ -658,7 +668,7 @@ def fig_country_stats(rsl_novlm='rsl', min_count=4):
             ax.legend(loc='upper left', bbox_to_anchor=(0, 0.45), title=f'{high_low.title()}')
         # Tick labels etc
         ax.set_yticks(country_stats_df.index)
-        ax.set_yticklabels(country_stats_df['country'].str.title())
+        ax.set_yticklabels(country_stats_df['country2'], weight='bold')
         ax.set_ylim(country_stats_df.index.min() - 0.5, country_stats_df.index.max() + 0.5)
         ax.set_xlim(-2, 4)
         ax.xaxis.set_major_locator(plticker.MultipleLocator(base=0.5))
