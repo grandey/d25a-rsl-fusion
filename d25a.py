@@ -511,6 +511,7 @@ def fig_high_map(high_low='high', cities=False, region=None):
         plt.scatter(cities_df['city_lon'], cities_df['city_lat'], s=50, marker='^', c='0.5', zorder=2)
     # Read and plot projection data
     proj_df = get_info_high_low_exceed_df(rsl_novlm='rsl', cities=cities)
+    proj_df = proj_df.sort_values(by=high_low)
     if region:
         proj_df = proj_df[proj_df['region'] == region].dropna()
     print(f'Plotting projection for {len(proj_df)} locations.')
