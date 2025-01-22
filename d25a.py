@@ -319,10 +319,22 @@ def get_info_high_low_exceed_df(rsl_novlm='rsl', cities=False):
             proj_df = pd.merge(proj_df, p_ex_ser, on='gauge_id')
     # Limit data to large cities?
     if cities:
-        # Read cities info, use gauge_id as index, and select subset of columns to use
-        cities_df = pd.read_csv(DATA_DIR / 'cities_d25a.csv').set_index('gauge_id')
-        cities_df = cities_df[['city_country', 'city_name', 'city_lat', 'city_lon', 'distance']]
+        # Read cities info and select subset of columns to use
+        cities_df = pd.read_csv(DATA_DIR / 'cities_d25a.csv')
+        cities_df = cities_df[['city_country', 'city_name', 'city_lat', 'city_lon', 'gauge_id', 'distance']]
+        # Keep only cities with distance <= 100 km
+        n_cities = len(cities_df)
+        cities_df = cities_df.where(cities_df['distance'] <= 100).dropna()
+        print(f'Of {n_cities} cities, {len(cities_df)} are within 100 km of a tide gauge.')
+        # Are any tide gauges used more than once? If so, drop the duplicate
+        duplic_df = cities_df.where(cities_df.duplicated(subset=['gauge_id'])).dropna()
+        if len(duplic_df) > 0:
+            for i, row in duplic_df.iterrows():
+                print(f'Dropping {row["city_name"]} due to repeated use of {row["gauge_name"]}.')
+            cities_df = cities_df.drop_duplicates(subset=['gauge_id'])
+            print(f'{len(cities_df)} cities remain.')
         # Find intersection of cities and projections at gauges and concatenate
+        cities_df = cities_df.set_index('gauge_id')
         proj_df = pd.concat([proj_df, cities_df], axis=1, join='inner')
     return proj_df
 
