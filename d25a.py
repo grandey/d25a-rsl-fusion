@@ -39,6 +39,7 @@ plt.rcParams['axes.axisbelow'] = True  # grid should be behind other elements
 plt.rcParams['grid.color'] = '0.95'
 
 # Constants
+SSP_LABEL_DICT = {'ssp126': 'SSP1-2.6', 'ssp585': 'SSP5-8.5'}  # names of scenarios
 AR6_DIR = Path.cwd() / 'data_ar6'  # directory containing AR6 input data
 PSML_DIR = Path.cwd() / 'data_psmsl'  # directory containing PSMSL catalogue file
 DATA_DIR = Path.cwd() / 'data_d25a'  # directory containing projections produced by data_d25a.ipynb
@@ -46,7 +47,6 @@ FIG_DIR = Path.cwd() / 'figs_d25a'  # directory in which to save figures
 F_NUM = itertools.count(1)  # main figures counter
 S_NUM = itertools.count(1)  # supplementary figures counter
 O_NUM = itertools.count(1)  # other figures counter
-SSP_LABEL_DICT = {'ssp126': 'SSP1-2.6', 'ssp585': 'SSP5-8.5'}  # names of scenarios
 
 
 def get_watermark():
@@ -297,6 +297,9 @@ def get_info_high_low_exceed_df(rsl_novlm='rsl', cities=False):
     """
     # Read gauge info
     proj_df = pd.read_csv(DATA_DIR / 'gauge_info_d25a.csv').set_index('gauge_id')
+    # Identify gauges in Asian region of interest, using longitude threshold
+    proj_df['region'] = 'other'  # region is other by default
+    proj_df.loc[(proj_df['lon'] > 60), 'region'] = 'asia'
     # Read high-end, low-end, and central projections for the year 2100
     for high_low in ['high', 'low', 'central']:
         temp_da = read_fusion_high_low(fusion_high_low=high_low, gmsl_rsl_novlm=rsl_novlm, scenario=None)
@@ -321,7 +324,8 @@ def get_info_high_low_exceed_df(rsl_novlm='rsl', cities=False):
     if cities:
         # Read cities info and select subset of columns to use
         cities_df = pd.read_csv(DATA_DIR / 'cities_d25a.csv')
-        cities_df = cities_df[['city_country', 'city_name', 'city_lat', 'city_lon', 'gauge_id', 'distance']]
+        cities_df = cities_df[['city_country', 'city_name', 'city_short', 'city_lat', 'city_lon',
+                               'gauge_id', 'distance']]
         # Keep only cities with distance <= 100 km
         n_cities = len(cities_df)
         cities_df = cities_df.where(cities_df['distance'] <= 100).dropna()
@@ -471,7 +475,7 @@ def fig_fusion_timeseries(gauge='TANJONG_PAGAR', gmsl_rsl_novlm='rsl'):
     return fig, axs
 
 
-def fig_high_map(high_low='high', cities=False):
+def fig_high_map(high_low='high', cities=False, region=None):
     """
     Plot map of high-end or low-end projection.
 
@@ -481,6 +485,8 @@ def fig_high_map(high_low='high', cities=False):
         Choose whether to plot high-end ('high'; default) or low-end ('low') projection.
     cities : bool
         If True, plot data for large cities. If False (default), plot data for all available gauges.
+    region : str or None
+        If not None, plot data for a specific region (e.g. 'asia', 'other').
 
     Returns
     -------
@@ -488,21 +494,60 @@ def fig_high_map(high_low='high', cities=False):
     ax : Axes
     """
     # Set up map
-    fig = plt.figure(figsize=(5, 3), tight_layout=True)
+    fig = plt.figure(figsize=(6, 4), tight_layout=True)
     ax = fig.add_subplot(1, 1, 1, projection=ccrs.PlateCarree())
-    gl = ax.gridlines(draw_labels=True, zorder=0)
+    gl = ax.gridlines(draw_labels=True, zorder=1)
     gl.bottom_labels = False
     gl.right_labels = False
-    ax.coastlines(zorder=1)
+    ax.coastlines(alpha=0.2, zorder=1)
+    # If cities, plot location of all large cities (even if no nearby tide gauge)
+    if cities:
+        cities_df = pd.read_csv(DATA_DIR / 'cities_d25a.csv')
+        if region == 'asia':
+            cities_df = cities_df[cities_df['city_lon'] > 60].dropna()
+        elif region == 'other':
+            cities_df = cities_df[cities_df['city_lon'] < 60].dropna()
+        print(f'Plotting {len(cities_df)} city locations.')
+        plt.scatter(cities_df['city_lon'], cities_df['city_lat'], s=50, marker='^', c='0.5', zorder=2)
     # Read and plot projection data
     proj_df = get_info_high_low_exceed_df(rsl_novlm='rsl', cities=cities)
+    if region:
+        proj_df = proj_df[proj_df['region'] == region].dropna()
+    print(f'Plotting projection for {len(proj_df)} locations.')
     cmap = plt.get_cmap('viridis', 10)
-    cmap.set_over('orange')
-    plt.scatter(proj_df['lon'], proj_df['lat'], c=proj_df[high_low], s=10, marker='o', edgecolors='1.',
-                linewidths=0.5, vmin=1, vmax=3, cmap=cmap, zorder=2)
-    cbar = plt.colorbar(orientation='horizontal', extend='both', pad=0.1,
+    cmap.set_over('yellow')
+    cmap.set_under([0, 0, 0.1])
+    if cities:
+        plt.scatter(proj_df['city_lon'], proj_df['city_lat'], c=proj_df[high_low], s=100, marker='o', edgecolors='1.',
+                    linewidths=0.5, vmin=1, vmax=3, cmap=cmap, zorder=3)
+    else:
+        plt.scatter(proj_df['lon'], proj_df['lat'], c=proj_df[high_low], s=10, marker='o', edgecolors='1.',
+                    linewidths=0.5, vmin=1, vmax=3, cmap=cmap, zorder=3)
+    # Colorbar
+    if proj_df[high_low].min() < 1 and proj_df[high_low].max() > 3:
+        extend = 'both'
+    elif proj_df[high_low].min() < 1:
+        extend = 'min'
+    elif proj_df[high_low].max() > 3:
+        extend = 'max'
+    else:
+        extend = None
+    cbar = plt.colorbar(orientation='horizontal', extend=extend, pad=0.05, shrink=0.7,
                         label=f'{high_low.title()}-end RSL in 2100, m')
     cbar.ax.set_xticks(np.arange(1, 3.1, 0.2))
+    # If cities, annotate with city names
+    if cities:
+        for index, row in proj_df.iterrows():
+            city_short, lon, lat = row['city_short'], row['lon'], row['lat']
+            size, weight = 'medium', 'bold'
+            if city_short in ['Tianjin',]:  # on left
+                plt.annotate(f'{city_short}   ', (lon, lat), va='center', ha='right', size=size, weight=weight)
+            elif city_short in ['Seoul', 'Tokyo']:  # above
+                plt.annotate(f'{city_short}', (lon, lat+1.5), va='bottom', ha='center', size=size, weight=weight)
+            elif city_short in ['Osaka', 'Kolkata', 'Mumbai']:  # below
+                plt.annotate(f'{city_short}', (lon, lat-1.5), va='top', ha='center', size=size, weight=weight)
+            else:  # on right (default)
+                plt.annotate(f'  {city_short}', (lon, lat), va='center', ha='left', size=size, weight=weight)
     return fig, ax
 
 
