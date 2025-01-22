@@ -562,13 +562,15 @@ def fig_city_proj():
     ax: Axes
     """
     # Create figure and axes
-    fig, ax = plt.subplots(1, 1, figsize=(10, 10), tight_layout=True)
+    fig, ax = plt.subplots(1, 1, figsize=(8, 5), tight_layout=True)
     # Get RSL and no-VLM projections for cities
     rsl_df = get_info_high_low_exceed_df(rsl_novlm='rsl', cities=True)  # RSL
     novlm_df = get_info_high_low_exceed_df(rsl_novlm='novlm', cities=True)  # RSL without VLM
     proj_df = pd.merge(rsl_df, novlm_df, how='inner', on='city_name', suffixes=(None, '_novlm'))
-    # Sort by high-end RSL
-    proj_df = proj_df.sort_values(by='high')
+    # Sort by high-end RSL within each region
+    proj_df.loc[len(proj_df)] = {'city_short': '—Asian megacities—', 'region': 'asia'}  # headers
+    proj_df.loc[len(proj_df)] = {'city_short': '—Other megacities—', 'region': 'other'}
+    proj_df = proj_df.sort_values(by=['region', 'high'], ascending=[False, True] )
     proj_df = proj_df.reset_index()
     # Plot data
     for col, label, color, marker in [('high', 'High-end', 'darkred', 'o'),
@@ -583,19 +585,19 @@ def fig_city_proj():
             label2 = f'High-end GMSL'
         else:
             label2 = None
-        ax.text(gmsl+0.05, proj_df.index.min()-0.3, label2,
-                rotation=90, va='bottom', ha='left', color=color, alpha=0.5)
+        ax.text(gmsl, proj_df.index.max()+0.3, label2,
+                rotation=90, va='top', ha='right', color=color, alpha=0.5)
         # Plot VLM component
         if col == 'high':
             ax.hlines(proj_df.index, proj_df[f'{col}_novlm'], proj_df[col], color=color, alpha=0.7,
-                      label='VLM component')
+                      label='VLM')
     # Legend
-    ax.legend(loc='lower right', bbox_to_anchor=(1, 0.15), title=None)
+    ax.legend(loc='center right', bbox_to_anchor=(0.55, 0.55), title=None)
     # Tick labels etc
     ax.set_yticks(proj_df.index)
-    ax.set_yticklabels(proj_df['city_name'].str.title() + ', ' + proj_df['country'].str.title())
+    ax.set_yticklabels(proj_df['city_short'], weight='bold')
     ax.set_ylim(proj_df.index.min() - 0.5, proj_df.index.max() + 0.5)
-    ax.set_xlim(-0.5, 3.5)
+    ax.set_xlim(-0.4, 3.3)
     ax.xaxis.set_major_locator(plticker.MultipleLocator(base=0.5))
     ax.tick_params(labelbottom=True, labeltop=True, labelleft=False, labelright=True,
                    bottom=False, top=False, right=False, left=False)
