@@ -344,9 +344,14 @@ def get_info_high_low_exceed_df(rsl_novlm='rsl', cities=False):
 
 
 @cache
-def get_summary_df():
+def get_summary_df(cities=False):
     """
     Return DataFrame summarising some of the key results across gauges.
+
+    Parameters
+    ----------
+    cities : bool
+        If True, return RSL stats for large cities. If False (default), return stats for all available gauges.
 
     Returns
     -------
@@ -361,7 +366,7 @@ def get_summary_df():
         gmsl_da = read_fusion_high_low(fusion_high_low=col, gmsl_rsl_novlm='gmsl', scenario=None).sel(years=2100)
         summary_df.loc['GMSL', col] = f'{gmsl_da.data:.1f} m'
         # RSL
-        rsl_se = get_info_high_low_exceed_df(rsl_novlm='rsl')[col]
+        rsl_se = get_info_high_low_exceed_df(rsl_novlm='rsl', cities=cities)[col]
         summary_df.loc['RSL median', col] = f'{rsl_se.median():.1f} m'
         summary_df.loc['RSL IQR', col] = f'{rsl_se.quantile(0.25):.1f} to {rsl_se.quantile(0.75):.1f} m'
         summary_df.loc['RSL range', col] = f'{rsl_se.min():.1f} to {rsl_se.max():.1f} m'
