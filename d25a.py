@@ -428,15 +428,15 @@ def get_country_stats_df(rsl_novlm='rsl'):
     return country_stats_df
 
 
-def fig_fusion_timeseries(gauge='TANJONG_PAGAR', gmsl_rsl_novlm='rsl'):
+def fig_fusion_timeseries(gauge_city='Bangkok', gmsl_rsl_novlm='rsl'):
     """
     Plot time series of median, likely range, and very likely range of sea level for (a) SSP5-8.5 and (b) SSP1-2.6.
     Also plot high-end and low-end projections.
 
     Parameters
     ----------
-    gauge : int, str, or None.
-        ID or name of gauge. Default is 'TANJONG_PAGAR'. Ignored if gmsl_rsl_novlm is 'gmsl'.
+    gauge_city : int, str, or None.
+        Name of gauge or city. Or ID of gauge. Default is 'Bangkok'. Ignored if gmsl_rsl_novlm is 'gmsl'.
     gmsl_rsl_novlm : str
         Global mean sea level ('gmsl'), RSL ('rsl'; default), or RSL without the background component ('novlm').
 
@@ -446,15 +446,24 @@ def fig_fusion_timeseries(gauge='TANJONG_PAGAR', gmsl_rsl_novlm='rsl'):
     axs : array of Axes
     """
     # Create figure and axes
-    fig, axs = plt.subplots(1, 2, figsize=(8.5, 3), sharex=False, sharey=True, tight_layout=True)
+    fig, axs = plt.subplots(1, 2, figsize=(9, 3.5), sharex=False, sharey=True, tight_layout=True)
     # Loop over scenarios and axes
     for i, (scenario, ax) in enumerate(zip(['ssp585', 'ssp126'], axs)):
         # Plot median, likely range, and very likely range of fusion
         if gmsl_rsl_novlm == 'gmsl':
             qfs_da = read_fusion_high_low(fusion_high_low='fusion', gmsl_rsl_novlm='gmsl', scenario=scenario).squeeze()
+            city, gauge = None, None
         else:
             qfs_da = read_fusion_high_low(fusion_high_low='fusion', gmsl_rsl_novlm=gmsl_rsl_novlm, scenario=scenario)
-            qfs_da = qfs_da.sel(locations=get_gauge_info(gauge=gauge)['gauge_id']).squeeze()
+            try:  # Is gauge parameter a tide gauge?
+                qfs_da = qfs_da.sel(locations=get_gauge_info(gauge=gauge_city)['gauge_id']).squeeze()
+                city = None
+                gauge = gauge_city
+            except ValueError:  # Or is it a city?
+                city = gauge_city
+                cities_df = pd.read_csv(DATA_DIR / 'cities_d25a.csv')
+                gauge = cities_df.loc[cities_df['city_short'] == city, 'gauge_name'].values[0]
+                qfs_da = qfs_da.sel(locations=get_gauge_info(gauge=gauge)['gauge_id']).squeeze()
         ax.plot(qfs_da['years'], qfs_da.sel(quantiles=0.5), color='turquoise', alpha=1, label=f'Median')
         ax.fill_between(qfs_da['years'], qfs_da.sel(quantiles=0.17), qfs_da.sel(quantiles=0.83), color='turquoise',
                         alpha=0.4, label='Likely range')
@@ -482,9 +491,15 @@ def fig_fusion_timeseries(gauge='TANJONG_PAGAR', gmsl_rsl_novlm='rsl'):
             if gmsl_rsl_novlm == 'gmsl':
                 ax.set_ylabel('GMSL, m')
             elif gmsl_rsl_novlm == 'rsl':
-                ax.set_ylabel(f'RSL at {gauge.replace("_", " ").title()}, m')
+                if city:
+                    ax.set_ylabel(f'RSL near {city}, m')
+                else:
+                    ax.set_ylabel(f'RSL at {gauge.replace("_", " ").title()}, m')
             elif gmsl_rsl_novlm == 'novlm':
-                ax.set_ylabel(f'RSL without VLM at {gauge.replace("_", " ").title()}, m')
+                if city:
+                    ax.set_ylabel(f'RSL without VLM near {city}, m')
+                else:
+                    ax.set_ylabel(f'RSL without VLM at {gauge.replace("_", " ").title()}, m')
         if i == 1:
             ax.tick_params(axis='y', labelright=True)
     return fig, axs
