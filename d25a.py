@@ -372,7 +372,7 @@ def get_summary_df(cities=False):
         summary_df.loc['RSL range', col] = f'{rsl_se.min():.1f} to {rsl_se.max():.1f} m'
         # Probability of exceeding projection under different scenarios
         for scenario in ['ssp585', 'ssp126']:
-            prob_se = get_info_high_low_exceed_df(rsl_novlm='rsl')[f'p_ex_{col}_{scenario}']
+            prob_se = get_info_high_low_exceed_df(rsl_novlm='rsl', cities=cities)[f'p_ex_{col}_{scenario}']
             summary_df.loc[f'P(RSL > projection | {SSP_LABEL_DICT[scenario]}) median', col] = \
                 f'{prob_se.median()*100:.1f} %'
             summary_df.loc[f'P(RSL > projection | {SSP_LABEL_DICT[scenario]}) IQR', col] = \
