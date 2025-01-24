@@ -502,6 +502,9 @@ def fig_fusion_timeseries(gauge_city='Bangkok', gmsl_rsl_novlm='rsl'):
                     ax.set_ylabel(f'RSL without VLM at {gauge.replace("_", " ").title()}, m')
         if i == 1:
             ax.tick_params(axis='y', labelright=True)
+        if gmsl_rsl_novlm == 'gmsl':
+            ax.set_ylim([0, 2])
+        ax.yaxis.set_major_locator(plticker.MultipleLocator(base=0.5))
     return fig, axs
 
 
