@@ -383,6 +383,53 @@ def get_summary_df(cities=False):
 
 
 @cache
+def get_cities_table_df():
+    """
+    Return table of city name, closest gauge, distance, and low-end, central, and high-end projections.
+    Also include summary statistics across all cities.
+
+    Returns
+    -------
+    table_df : DataFrame
+    """
+    # Get RSL projections and associated data for cities
+    rsl_df = get_info_high_low_exceed_df(rsl_novlm='rsl', cities=True).copy()
+    # Calculate summary statistics
+    max_ser = rsl_df.max(numeric_only=True)
+    med_ser = rsl_df.median(numeric_only=True)
+    min_ser = rsl_df.min(numeric_only=True)
+    # Combine gauge name & ID in new column
+    rsl_df['gauge'] = rsl_df['gauge_name'] + ' (' + rsl_df.index.astype(int).astype(str) + ')'
+    # Add region headers and sort by region and high-end
+    rsl_df.loc[len(rsl_df)] = {'city_short': '—Asian megacities—', 'region': 'asia'}
+    rsl_df.loc[len(rsl_df)] = {'city_short': '—Other megacities—', 'region': 'other'}
+    rsl_df = rsl_df.sort_values(by=['region', 'high'], ascending=[True, False], na_position='first')
+    # Include summary statistics
+    rsl_df.loc[len(rsl_df)] = {'city_short': '—Statistics—'}
+    for ser, stat_str in [(max_ser, 'Maximum'), (med_ser, 'Median'), (min_ser, 'Minimum')]:
+        ser['city_short'] = stat_str
+        ser['distance'] = np.nan  # distance stats not required
+        rsl_df.loc[len(rsl_df)] = ser
+    # Rename columns
+    rsl_df = rsl_df.rename(columns={
+        'city_short': 'City', 'city_name': 'Full name', 'gauge': 'Gauge', 'distance': 'Distance, km',
+        'low': 'Low-end, m', 'central': 'Central, m', 'high': 'High-end, m'})
+    for high_low in ['low', 'central', 'high']:
+        for scenario in ['ssp126', 'ssp585']:
+            if high_low == 'central':
+                new_col_name = f'Central under {SSP_LABEL_DICT[scenario]}'
+            else:
+                new_col_name = f'{high_low.title()}-end under {SSP_LABEL_DICT[scenario]}'
+            rsl_df = rsl_df.rename(columns={f'p_ex_{high_low}_{scenario}': new_col_name})
+    # Use short name of city as index
+    rsl_df = rsl_df.set_index('City')
+    # Select columns of interest
+    columns = ['Full name', 'Gauge', 'Distance, km', 'Low-end, m', 'Central, m', 'High-end, m']
+    table_df = rsl_df[columns]
+    return table_df
+
+
+@cache
 def get_country_stats_df(rsl_novlm='rsl'):
     """
     Return country-level statistics across gauges for high-end, low-end, and central projections for 2100.
@@ -622,8 +669,7 @@ def fig_city_proj():
                 rotation=90, va='top', ha='right', color=color, alpha=0.5)
         # Plot VLM component
         if col == 'high':
-            ax.hlines(proj_df.index, proj_df[f'{col}_novlm'], proj_df[col], color=color, alpha=0.7,
-                      label='VLM')
+            ax.hlines(proj_df.index, proj_df[f'{col}_novlm'], proj_df[col], color=color, alpha=0.7, label='VLM')
     # Legend
     ax.legend(loc='center right', bbox_to_anchor=(0.55, 0.55), title=None)
     # Tick labels etc
