@@ -13,6 +13,7 @@ dependencies:
   - numpy
   - pandas
   - xlrd
+  - openpyxl
   - xarray
   - NetCDF4
   - matplotlib
