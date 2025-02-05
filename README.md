@@ -23,8 +23,8 @@ The analysis has been performed within this environment on _macOS 13_ (arm64).
 Input data from the [IPCC AR6 Sea Level Projections](https://doi.org/10.5281/zenodo.6382554), the [IPCC AR6 Relative Sea Level Projection Distributions](https://doi.org/10.5281/zenodo.5914932), and the [IPCC AR6 Relative Sea Level Projections without Background Component](https://doi.org/10.5281/zenodo.5967269) repositories can be downloaded as follows:
 
 ```
-mkdir data_ar6
-cd data_ar6
+mkdir -p data_in/ar6
+cd data_in/ar6
 curl "https://zenodo.org/records/6382554/files/ar6.zip?download=1" -O
 unzip ar6.zip
 curl "https://zenodo.org/records/5914932/files/ar6-regional-distributions.zip?download=1" -O
@@ -32,7 +32,7 @@ unzip ar6-regional-distributions.zip
 curl "https://zenodo.org/records/5967269/files/ar6-regional_novlm-distributions.zip?download=1" -O
 unzip ar6-regional_novlm-distributions.zip
 curl "https://zenodo.org/records/6382554/files/location_list.lst?download=1" -O
-cd ..
+cd ../..
 ```
 
 Users of these IPCC AR6 projections should note the [required acknowledgments and citations](https://doi.org/10.5281/zenodo.6382554).
@@ -40,23 +40,23 @@ Users of these IPCC AR6 projections should note the [required acknowledgments an
 The [PSMSL catalogue file](https://psmsl.org/data/obtaining/nucat.dat) identifies which country each tide gauge corresponds to:
 
 ```
-mkdir data_psmsl
-cd data_psmsl
+mkdir -p data_in/psmsl
+cd data_in/psmsl
 curl "https://psmsl.org/data/obtaining/nucat.dat" -O
-cd ..
+cd ../..
 ```
 
 The United Nations Department of Economic and Social Affairs [World Urbanisation Prospects 2018](https://population.un.org/wup/downloads?tab=Urban%20Agglomerations) File 12 contains the population and locations of cities (urban agglomerations):
 
 ```
-mkdir data_wup18
-cd data_wup18
+mkdir -p data_in/wup18
+cd data_in/wup18
 curl "https://population.un.org/wup/assets/Download/WUP2018-F12-Cities_Over_300K.xls" -O
-cd ..
+cd ../..
 ```
 
 ### 3. Produce data for fusion, high-end, and low-end projections
-[**`data_d25a.ipynb`**](data_d25a.ipynb) uses the input data to produce the fusion, high-end, and low-end projections, which are saved to [**`data_fusion/`**](data_fusion/).
+[**`data_d25a.ipynb`**](data_d25a.ipynb) uses the input data to produce the fusion, high-end, and low-end projections, which are saved to [**`data_d25a/`**](data_d25a/).
 
 ### 4. Analyse data and produce figures - NOT YET IMPLEMENTED
 [**`figs_d25a.ipynb`**](figs_d25a.ipynb) analyses the projections and produces the figures.
