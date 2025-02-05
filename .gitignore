@@ -1,12 +1,12 @@
 # Misc - added by BSG
 data_in/
-data_d25a/
 figs_d25a/
 temp_*
 temp.*
 temp/
 .idea
 .DS_Store
+*.nc
 *.pdf
 *pdf
 *~
