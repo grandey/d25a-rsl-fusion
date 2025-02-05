@@ -40,8 +40,8 @@ plt.rcParams['grid.color'] = '0.95'
 
 # Constants
 SSP_LABEL_DICT = {'ssp126': 'SSP1-2.6', 'ssp585': 'SSP5-8.5'}  # names of scenarios
-AR6_DIR = Path.cwd() / 'data_ar6'  # directory containing AR6 input data
-PSML_DIR = Path.cwd() / 'data_psmsl'  # directory containing PSMSL catalogue file
+AR6_DIR = Path.cwd() / 'data_in' / 'ar6'  # directory containing AR6 input data
+PSMSL_DIR = Path.cwd() / 'data_in' / 'psmsl'  # directory containing PSMSL catalogue file
 DATA_DIR = Path.cwd() / 'data_d25a'  # directory containing projections produced by data_d25a.ipynb
 FIG_DIR = Path.cwd() / 'figs_d25a'  # directory in which to save figures
 F_NUM = itertools.count(1)  # main figures counter
@@ -92,7 +92,7 @@ def get_gauge_info(gauge='TANJONG_PAGAR'):
     except IndexError:
         raise ValueError(f"gauge='{gauge}' not found.")
     # Get country information
-    psmsl_fn = PSML_DIR / 'nucat.dat'  # PSMSL catalogue file
+    psmsl_fn = PSMSL_DIR / 'nucat.dat'  # PSMSL catalogue file
     with open(psmsl_fn) as f:  # open file
         for l in f:  # loop over lines
             s_list = l.split()  # split line into strings
