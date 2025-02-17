@@ -248,34 +248,41 @@ def get_fusion_weights():
 # Functions used by figs_d25a.ipynb
 
 @cache
-def read_fusion_high_low(fusion_high_low='fusion', gmsl_rsl_novlm='rsl', scenario='ssp585'):
+def read_proj_ts_da(gmsl_rsl_novlm='gmsl', fusion_high_low_central='fusion', scenario='ssp585'):
     """
-    Read projection data produced by data_d25a.ipynb.
+    Read projection time-series DataArray produced by data_d25a.ipynb.
 
     Parameters
     ----------
-    fusion_high_low : str
+    gmsl_rsl_novlm : str
+        GMSL ('gmsl'; default), RSL at gauges ('rsl'), or RSL without the background component ('novlm').
+    fusion_high_low_central : str
         Choose whether to read full fusion ('fusion'), high-end ('high'), low-end ('low'), or central ('central')
         projection.
-    gmsl_rsl_novlm : str
-        Global mean sea level ('gmsl'), RSL ('rsl'; default), or RSL without the background component ('novlm').
     scenario : str or None
         If reading fusion, options are 'ssp585' or 'ssp126'. Ignored for high-end, low-end, and central.
 
     Returns
     -------
-    proj_da : xarray DataArray
-        DataArray of sea-level projection.
+    proj_ts_da : xarray DataArray
+        DataArray of sea-level projection time series.
     """
+    # Input directory
+    if gmsl_rsl_novlm == 'gmsl':
+        in_dir = DATA_DIR / 'gmsl'
+    else:
+        in_dir = DATA_DIR / 'gauges'
     # File to read
-    if fusion_high_low == 'fusion':
-        in_fn = DATA_DIR / f'{gmsl_rsl_novlm}_fusion_{scenario}_d25a.nc'
-    elif fusion_high_low in ['high', 'low', 'central']:
-        in_fn = DATA_DIR / f'{gmsl_rsl_novlm}_{fusion_high_low}_d25a.nc'
+    if fusion_high_low_central == 'fusion':
+        in_fn = in_dir / f'{gmsl_rsl_novlm}_fusion_{scenario}_d25a.nc'
+    elif fusion_high_low_central in ['high', 'low', 'central']:
+        in_fn = in_dir / f'{gmsl_rsl_novlm}_{fusion_high_low_central}_d25a.nc'
     # Read data
-    proj_da = xr.open_dataset(in_fn)['sea_level_change']
-    return proj_da
+    proj_ts_da = xr.open_dataset(in_fn)['sea_level_change']
+    return proj_ts_da
 
+
+# Older functions that need revising / deleting
 
 @cache
 def get_info_high_low_exceed_df(rsl_novlm='rsl', cities=False):
