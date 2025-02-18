@@ -268,10 +268,7 @@ def read_proj_ts_da(gmsl_rsl_novlm='gmsl', fusion_high_low_central='fusion', sce
         DataArray of sea-level projection time series.
     """
     # Input directory
-    if gmsl_rsl_novlm == 'gmsl':
-        in_dir = DATA_DIR / 'gmsl'
-    else:
-        in_dir = DATA_DIR / 'gauges'
+    in_dir = DATA_DIR / 'time_series'
     # File to read
     if fusion_high_low_central == 'fusion':
         in_fn = in_dir / f'{gmsl_rsl_novlm}_fusion_{scenario}_d25a.nc'
@@ -280,6 +277,30 @@ def read_proj_ts_da(gmsl_rsl_novlm='gmsl', fusion_high_low_central='fusion', sce
     # Read data
     proj_ts_da = xr.open_dataset(in_fn)['sea_level_change']
     return proj_ts_da
+
+
+@cache
+def read_proj_2100_df(gauges_cities_megacities='megacities'):
+    """
+    Read year-2100 projections DataFrame produced by data_d25a.ipynb.
+
+    Parameters
+    ----------
+    gauges_cities_megacities : str
+        Gauges ('gauges'), cities ('cities'), or megacities ('megacities'; default).
+
+    Returns
+    -------
+    proj_2100_df : pandas DataFrame
+        DataFrame containing year-2100 projections and also gauge/city information.
+    """
+    # Input directory
+    in_dir = DATA_DIR / 'year_2100'
+    # File to read
+    in_fn = in_dir / f'{gauges_cities_megacities}_2100_d25a.csv'
+    # Read data
+    proj_2100_df = pd.read_csv(in_fn)
+    return proj_2100_df
 
 
 # Older functions that need revising / deleting
