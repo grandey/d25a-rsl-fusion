@@ -1,4 +1,4 @@
-gauge_id,gauge_name,lat,lon,country
+gauge_id,gauge_name,gauge_lat,gauge_lon,gauge_country
 1,BREST,48.38,-4.49,FRANCE
 2,SWINOUJSCIE,53.92,14.23,POLAND
 3,SHEERNESS,51.45,0.74,UNITED KINGDOM

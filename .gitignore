@@ -1,6 +1,7 @@
 # Misc - added by BSG
 data_in/
 figs_d25a/
+local/
 temp_*
 temp.*
 temp/
