@@ -303,88 +303,103 @@ def read_proj_2100_df(gauges_cities_megacities='megacities'):
     return proj_2100_df
 
 
-# Older functions that need revising / deleting
-
-@cache
-def get_info_high_low_exceed_df(rsl_novlm='rsl', cities=False):
-    """
-    Return gauge info, high-end, low-end, and central projection for 2100, and the probabilities of exceeding these.
-
-    Parameters
-    ----------
-    rsl_novlm : str
-        RSL ('rsl'; default) or RSL without the background component ('novlm').
-    cities : bool
-        If True, return data for large cities. If False (default), return data for all available gauges.
-
-    Returns
-    -------
-    proj_df : DataFrame
-        DataFrame containing gauge_id, gauge_name, lat, lon, country, high, low, p_ex_high_ssp585, p_ex_high_ssp126,
-        p_ex_low_ssp585, p_ex_low_ssp126, p_ex_central_ssp585, p_ex_central_ssp126.
-    """
-    # Read gauge info
-    proj_df = pd.read_csv(DATA_DIR / 'gauge_info_d25a.csv').set_index('gauge_id')
-    # Identify gauges in Asian region of interest, using longitude threshold
-    proj_df['region'] = 'other'  # region is other by default
-    proj_df.loc[(proj_df['lon'] > 60), 'region'] = 'asia'
-    # Read high-end, low-end, and central projections for the year 2100
-    for high_low in ['high', 'low', 'central']:
-        temp_da = read_fusion_high_low(fusion_high_low=high_low, gmsl_rsl_novlm=rsl_novlm, scenario=None)
-        temp_ser = temp_da.sel(years=2100).rename({'locations': 'gauge_id'}).to_series().rename(high_low)
-        proj_df = pd.merge(proj_df, temp_ser, on='gauge_id')
-    # Probability of exceeding high-end, low-end, and central projections under different scenarios
-    for high_low in ['high', 'low', 'central']:
-        for scenario in ['ssp585', 'ssp126']:
-            # Get and linearly interpolate quantile functions for fusion under specified scenario in 2100
-            fusion_da = read_fusion_high_low(fusion_high_low='fusion', gmsl_rsl_novlm=rsl_novlm, scenario=scenario
-                                             ).sel(years=2100)
-            fusion_da = fusion_da.interp(quantiles=np.linspace(0, 1, 20001), method='linear')  # interval of 0.005%
-            # Get high-end, low-end, or central projection
-            high_low_da = read_fusion_high_low(fusion_high_low=high_low, gmsl_rsl_novlm=rsl_novlm, scenario=None)
-            # Find approximate probability of exceeding projection
-            p_ex_da = (fusion_da > high_low_da).mean(dim='quantiles')
-            p_ex_da = p_ex_da.round(decimals=4)  # round to nearest 0.01%
-            p_ex_ser = p_ex_da.sel(years=2100).rename({'locations': 'gauge_id'}).to_series()
-            p_ex_ser = p_ex_ser.rename(f'p_ex_{high_low}_{scenario}')
-            proj_df = pd.merge(proj_df, p_ex_ser, on='gauge_id')
-    # Limit data to large cities?
-    if cities:
-        # Read cities info and select subset of columns to use
-        cities_df = pd.read_csv(DATA_DIR / 'cities_d25a.csv')
-        cities_df = cities_df[['city_country', 'city_name', 'city_short', 'city_lat', 'city_lon',
-                               'gauge_id', 'distance']]
-        # Keep only cities with distance <= 100 km
-        n_cities = len(cities_df)
-        cities_df = cities_df.where(cities_df['distance'] <= 100).dropna()
-        print(f'Of {n_cities} cities, {len(cities_df)} are within 100 km of a tide gauge.')
-        # Are any tide gauges used more than once? If so, drop the duplicate
-        duplic_df = cities_df.where(cities_df.duplicated(subset=['gauge_id'])).dropna()
-        if len(duplic_df) > 0:
-            for i, row in duplic_df.iterrows():
-                print(f'Dropping {row["city_name"]} due to repeated use of {row["gauge_name"]}.')
-            cities_df = cities_df.drop_duplicates(subset=['gauge_id'])
-            print(f'{len(cities_df)} cities remain.')
-        # Find intersection of cities and projections at gauges and concatenate
-        cities_df = cities_df.set_index('gauge_id')
-        proj_df = pd.concat([proj_df, cities_df], axis=1, join='inner')
-    return proj_df
+# @cache
+# def get_info_high_low_exceed_df(rsl_novlm='rsl', cities=False):
+#     """
+#     Return gauge info, high-end, low-end, and central projection for 2100, and the probabilities of exceeding these.
+#
+#     Parameters
+#     ----------
+#     rsl_novlm : str
+#         RSL ('rsl'; default) or RSL without the background component ('novlm').
+#     cities : bool
+#         If True, return data for large cities. If False (default), return data for all available gauges.
+#
+#     Returns
+#     -------
+#     proj_df : DataFrame
+#         DataFrame containing gauge_id, gauge_name, lat, lon, country, high, low, p_ex_high_ssp585, p_ex_high_ssp126,
+#         p_ex_low_ssp585, p_ex_low_ssp126, p_ex_central_ssp585, p_ex_central_ssp126.
+#     """
+#     # Read gauge info
+#     proj_df = pd.read_csv(DATA_DIR / 'gauge_info_d25a.csv').set_index('gauge_id')
+#     # Identify gauges in Asian region of interest, using longitude threshold
+#     proj_df['region'] = 'other'  # region is other by default
+#     proj_df.loc[(proj_df['lon'] > 60), 'region'] = 'asia'
+#     # Read high-end, low-end, and central projections for the year 2100
+#     for high_low in ['high', 'low', 'central']:
+#         temp_da = read_fusion_high_low(fusion_high_low=high_low, gmsl_rsl_novlm=rsl_novlm, scenario=None)
+#         temp_ser = temp_da.sel(years=2100).rename({'locations': 'gauge_id'}).to_series().rename(high_low)
+#         proj_df = pd.merge(proj_df, temp_ser, on='gauge_id')
+#     # Probability of exceeding high-end, low-end, and central projections under different scenarios
+#     for high_low in ['high', 'low', 'central']:
+#         for scenario in ['ssp585', 'ssp126']:
+#             # Get and linearly interpolate quantile functions for fusion under specified scenario in 2100
+#             fusion_da = read_fusion_high_low(fusion_high_low='fusion', gmsl_rsl_novlm=rsl_novlm, scenario=scenario
+#                                              ).sel(years=2100)
+#             fusion_da = fusion_da.interp(quantiles=np.linspace(0, 1, 20001), method='linear')  # interval of 0.005%
+#             # Get high-end, low-end, or central projection
+#             high_low_da = read_fusion_high_low(fusion_high_low=high_low, gmsl_rsl_novlm=rsl_novlm, scenario=None)
+#             # Find approximate probability of exceeding projection
+#             p_ex_da = (fusion_da > high_low_da).mean(dim='quantiles')
+#             p_ex_da = p_ex_da.round(decimals=4)  # round to nearest 0.01%
+#             p_ex_ser = p_ex_da.sel(years=2100).rename({'locations': 'gauge_id'}).to_series()
+#             p_ex_ser = p_ex_ser.rename(f'p_ex_{high_low}_{scenario}')
+#             proj_df = pd.merge(proj_df, p_ex_ser, on='gauge_id')
+#     # Limit data to large cities?
+#     if cities:
+#         # Read cities info and select subset of columns to use
+#         cities_df = pd.read_csv(DATA_DIR / 'cities_d25a.csv')
+#         cities_df = cities_df[['city_country', 'city_name', 'city_short', 'city_lat', 'city_lon',
+#                                'gauge_id', 'distance']]
+#         # Keep only cities with distance <= 100 km
+#         n_cities = len(cities_df)
+#         cities_df = cities_df.where(cities_df['distance'] <= 100).dropna()
+#         print(f'Of {n_cities} cities, {len(cities_df)} are within 100 km of a tide gauge.')
+#         # Are any tide gauges used more than once? If so, drop the duplicate
+#         duplic_df = cities_df.where(cities_df.duplicated(subset=['gauge_id'])).dropna()
+#         if len(duplic_df) > 0:
+#             for i, row in duplic_df.iterrows():
+#                 print(f'Dropping {row["city_name"]} due to repeated use of {row["gauge_name"]}.')
+#             cities_df = cities_df.drop_duplicates(subset=['gauge_id'])
+#             print(f'{len(cities_df)} cities remain.')
+#         # Find intersection of cities and projections at gauges and concatenate
+#         cities_df = cities_df.set_index('gauge_id')
+#         proj_df = pd.concat([proj_df, cities_df], axis=1, join='inner')
+#     return proj_df
 
 
 @cache
-def get_summary_df(cities=False):
+def get_proj_2100_summary_df(gauges_cities_megacities='megacities'):
     """
-    Return DataFrame summarising some of the key results across gauges.
+    Return DataFrame summarising some of the key results of year-2100 projections across gauges/cities.
 
     Parameters
     ----------
-    cities : bool
-        If True, return RSL stats for large cities. If False (default), return stats for all available gauges.
+    gauges_cities_megacities : str
+        Gauges ('gauges'), cities ('cities'), or megacities ('megacities'; default).
 
     Returns
     -------
     summary_df : DataFrame
     """
+    # Get year-2100 projections DataFrame
+    proj_2100_df = read_proj_2100_df(gauges_cities_megacities=gauges_cities_megacities)
+    # Keep only rsl and novlm columns
+    proj_2100_df = proj_2100_df[['rsl_low', 'rsl_central', 'rsl_high', 'novlm_low', 'novlm_central', 'novlm_high']]
+    # Remove rows with missing data
+    proj_2100_df = proj_2100_df.dropna()
+    # Get summary statistics using describe and round to 1 d.p.
+    describe_df = proj_2100_df.describe().round(1)
+    # Use these summary statistics to populate new DataFrame
+    summary_df = pd.DataFrame(columns=describe_df.columns)
+    for col in summary_df.columns:
+        summary_df.loc['Median', col] = describe_df.loc['50%', col]
+        summary_df.loc['IQR', col] = f'{describe_df.loc["25%", col]} to {describe_df.loc["75%", col]}'
+        summary_df.loc['Range', col] = f'{describe_df.loc["min", col]} to {describe_df.loc["max", col]}'
+        summary_df.loc['Count', col] = int(describe_df.loc['count', col])
+    return summary_df
+
     # Create DataFrame
     columns = ['low', 'central', 'high']
     summary_df = pd.DataFrame(columns=columns)
@@ -409,6 +424,8 @@ def get_summary_df(cities=False):
                 f'{prob_se.min()*100:.1f} to {prob_se.max()*100:.1f} %'
     return summary_df
 
+
+# Older functions that need revising / deleting
 
 @cache
 def get_cities_table_df():
