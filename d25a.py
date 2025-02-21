@@ -400,104 +400,80 @@ def get_proj_2100_summary_df(gauges_cities_megacities='megacities'):
         summary_df.loc['Count', col] = int(describe_df.loc['count', col])
     return summary_df
 
-    # Create DataFrame
-    columns = ['low', 'central', 'high']
-    summary_df = pd.DataFrame(columns=columns)
-    # Loop over columns
-    for col in ['low', 'central', 'high']:
-        # GMSL
-        gmsl_da = read_fusion_high_low(fusion_high_low=col, gmsl_rsl_novlm='gmsl', scenario=None).sel(years=2100)
-        summary_df.loc['GMSL', col] = f'{gmsl_da.data:.1f} m'
-        # RSL
-        rsl_se = get_info_high_low_exceed_df(rsl_novlm='rsl', cities=cities)[col]
-        summary_df.loc['RSL median', col] = f'{rsl_se.median():.1f} m'
-        summary_df.loc['RSL IQR', col] = f'{rsl_se.quantile(0.25):.1f} to {rsl_se.quantile(0.75):.1f} m'
-        summary_df.loc['RSL range', col] = f'{rsl_se.min():.1f} to {rsl_se.max():.1f} m'
-        # Probability of exceeding projection under different scenarios
-        for scenario in ['ssp585', 'ssp126']:
-            prob_se = get_info_high_low_exceed_df(rsl_novlm='rsl', cities=cities)[f'p_ex_{col}_{scenario}']
-            summary_df.loc[f'P(RSL > projection | {SSP_LABEL_DICT[scenario]}) median', col] = \
-                f'{prob_se.median()*100:.1f} %'
-            summary_df.loc[f'P(RSL > projection | {SSP_LABEL_DICT[scenario]}) IQR', col] = \
-                f'{prob_se.quantile(0.25)*100:.1f} to {prob_se.quantile(0.75)*100:.1f} %'
-            summary_df.loc[f'P(RSL > projection | {SSP_LABEL_DICT[scenario]}) range', col] = \
-                f'{prob_se.min()*100:.1f} to {prob_se.max()*100:.1f} %'
-    return summary_df
 
-
-# Older functions that need revising / deleting
-
-@cache
-def get_cities_table_df():
-    """
-    Return table of city name, closest gauge, distance, and low-end, central, and high-end projections.
-    Also include summary statistics across all cities.
-
-    Returns
-    -------
-    table_df : DataFrame
-    """
-    # Get RSL projections and associated data for cities
-    rsl_df = get_info_high_low_exceed_df(rsl_novlm='rsl', cities=True).copy()
-    # Calculate summary statistics
-    max_ser = rsl_df.max(numeric_only=True)
-    med_ser = rsl_df.median(numeric_only=True)
-    min_ser = rsl_df.min(numeric_only=True)
-    # Combine gauge name & ID in new column
-    rsl_df['gauge'] = rsl_df['gauge_name'] + ' (' + rsl_df.index.astype(int).astype(str) + ')'
-    # Add region headers and sort by region and high-end
-    rsl_df.loc[len(rsl_df)] = {'city_short': '—Asian megacities—', 'region': 'asia'}
-    rsl_df.loc[len(rsl_df)] = {'city_short': '—Other megacities—', 'region': 'other'}
-    rsl_df = rsl_df.sort_values(by=['region', 'high'], ascending=[True, False], na_position='first')
-    # Include summary statistics
-    rsl_df.loc[len(rsl_df)] = {'city_short': '—Statistics—'}
-    for ser, stat_str in [(max_ser, 'Maximum'), (med_ser, 'Median'), (min_ser, 'Minimum')]:
-        ser['city_short'] = stat_str
-        ser['distance'] = np.nan  # distance stats not required
-        rsl_df.loc[len(rsl_df)] = ser
-    # Rename columns
-    rsl_df = rsl_df.rename(columns={
-        'city_short': 'City', 'city_name': 'Full name', 'gauge': 'Gauge', 'distance': 'Distance, km',
-        'low': 'Low-end, m', 'central': 'Central, m', 'high': 'High-end, m'})
-    for high_low in ['low', 'central', 'high']:
-        for scenario in ['ssp126', 'ssp585']:
-            if high_low == 'central':
-                new_col_name = f'Central under {SSP_LABEL_DICT[scenario]}'
-            else:
-                new_col_name = f'{high_low.title()}-end under {SSP_LABEL_DICT[scenario]}'
-            rsl_df = rsl_df.rename(columns={f'p_ex_{high_low}_{scenario}': new_col_name})
-    # Use short name of city as index
-    rsl_df = rsl_df.set_index('City')
-    # Select columns of interest
-    columns = ['Full name', 'Gauge', 'Distance, km', 'Low-end, m', 'Central, m', 'High-end, m']
-    table_df = rsl_df[columns]
-    return table_df
+# @cache
+# def get_cities_table_df():
+#     """
+#     Return table of city name, closest gauge, distance, and low-end, central, and high-end projections.
+#     Also include summary statistics across all cities.
+#
+#     Returns
+#     -------
+#     table_df : DataFrame
+#     """
+#     # Get RSL projections and associated data for cities
+#     rsl_df = get_info_high_low_exceed_df(rsl_novlm='rsl', cities=True).copy()
+#     # Calculate summary statistics
+#     max_ser = rsl_df.max(numeric_only=True)
+#     med_ser = rsl_df.median(numeric_only=True)
+#     min_ser = rsl_df.min(numeric_only=True)
+#     # Combine gauge name & ID in new column
+#     rsl_df['gauge'] = rsl_df['gauge_name'] + ' (' + rsl_df.index.astype(int).astype(str) + ')'
+#     # Add region headers and sort by region and high-end
+#     rsl_df.loc[len(rsl_df)] = {'city_short': '—Asian megacities—', 'region': 'asia'}
+#     rsl_df.loc[len(rsl_df)] = {'city_short': '—Other megacities—', 'region': 'other'}
+#     rsl_df = rsl_df.sort_values(by=['region', 'high'], ascending=[True, False], na_position='first')
+#     # Include summary statistics
+#     rsl_df.loc[len(rsl_df)] = {'city_short': '—Statistics—'}
+#     for ser, stat_str in [(max_ser, 'Maximum'), (med_ser, 'Median'), (min_ser, 'Minimum')]:
+#         ser['city_short'] = stat_str
+#         ser['distance'] = np.nan  # distance stats not required
+#         rsl_df.loc[len(rsl_df)] = ser
+#     # Rename columns
+#     rsl_df = rsl_df.rename(columns={
+#         'city_short': 'City', 'city_name': 'Full name', 'gauge': 'Gauge', 'distance': 'Distance, km',
+#         'low': 'Low-end, m', 'central': 'Central, m', 'high': 'High-end, m'})
+#     for high_low in ['low', 'central', 'high']:
+#         for scenario in ['ssp126', 'ssp585']:
+#             if high_low == 'central':
+#                 new_col_name = f'Central under {SSP_LABEL_DICT[scenario]}'
+#             else:
+#                 new_col_name = f'{high_low.title()}-end under {SSP_LABEL_DICT[scenario]}'
+#             rsl_df = rsl_df.rename(columns={f'p_ex_{high_low}_{scenario}': new_col_name})
+#     # Use short name of city as index
+#     rsl_df = rsl_df.set_index('City')
+#     # Select columns of interest
+#     columns = ['Full name', 'Gauge', 'Distance, km', 'Low-end, m', 'Central, m', 'High-end, m']
+#     table_df = rsl_df[columns]
+#     return table_df
 
 
 @cache
-def get_country_stats_df(rsl_novlm='rsl'):
+def get_country_stats_df(rsl_novlm='rsl', min_count=4):
     """
-    Return country-level statistics across gauges for high-end, low-end, and central projections for 2100.
+    Return country-level statistics across gauges for year-2100 projections.
 
     Parameters
     ----------
     rsl_novlm : str
         RSL ('rsl'; default) or RSL without the background component ('novlm').
+    min_count : int
+        Minimum number of tide gauges required for country to be included. Default is 4.
 
     Returns
     -------
     country_stats_df : DataFrame
-        DataFrame containing country, count (number of gauges), high_med, high_min, high_max, low_med, low_min, low_max,
-        central_med, central_min, central_max.
+        DataFrame containing country, count (number of gauges), low_med, low_min, low_max, central_med, central_min,
+        central_max, high_med, high_min, high_max.
     """
-    # Get high-end and low-end projections for 2100
-    proj_df = get_info_high_low_exceed_df(rsl_novlm=rsl_novlm)
+    # Get low, central, and high projections for 2100
+    proj_2100_df = read_proj_2100_df(gauges_cities_megacities='gauges')
     # Groupby country and calculate count, median, min, and max
-    count_df = proj_df.groupby('country').count()
-    med_df = proj_df.groupby('country').median(numeric_only=True)
-    min_df = proj_df.groupby('country').min(numeric_only=True)
-    max_df = proj_df.groupby('country').max(numeric_only=True)
-    # Reformat names of countries (for 'country2' column, used when plotting)
+    count_df = proj_2100_df.groupby('gauge_country').count()
+    med_df = proj_2100_df.groupby('gauge_country').median(numeric_only=True)
+    min_df = proj_2100_df.groupby('gauge_country').min(numeric_only=True)
+    max_df = proj_2100_df.groupby('gauge_country').max(numeric_only=True)
+    # Reformat names of countries (for 'country' column, used when plotting)
     countries = []
     for s in count_df.index:
         if ', ' in s:
@@ -507,18 +483,25 @@ def get_country_stats_df(rsl_novlm='rsl'):
         s = s.replace("The", "the")
         countries.append(s)
     # Save country-level stats to new DataFrame
-    columns = ['country', 'country2', 'count', 'high_med', 'high_min', 'high_max', 'low_med', 'low_min', 'low_max',
-               'central_med', 'central_min', 'central_max']
+    columns = ['gauge_country', 'country', 'count', 'low_med', 'low_min', 'low_max', 'central_med', 'central_min',
+               'central_max', 'high_med', 'high_min', 'high_max']
     country_stats_df = pd.DataFrame(columns=columns)
-    country_stats_df['country'] = count_df.index
-    country_stats_df['country2'] = countries
-    country_stats_df['count'] = count_df['high'].values
-    for high_low in ['high', 'low', 'central']:
-        country_stats_df[f'{high_low}_med'] = med_df[high_low].values
-        country_stats_df[f'{high_low}_min'] = min_df[high_low].values
-        country_stats_df[f'{high_low}_max'] = max_df[high_low].values
+    country_stats_df['gauge_country'] = count_df.index
+    country_stats_df['country'] = countries
+    country_stats_df['count'] = count_df[f'{rsl_novlm}_high'].values
+    for high_low_central in ['low', 'central', 'high']:
+        country_stats_df[f'{high_low_central}_med'] = med_df[f'{rsl_novlm}_{high_low_central}'].values
+        country_stats_df[f'{high_low_central}_min'] = min_df[f'{rsl_novlm}_{high_low_central}'].values
+        country_stats_df[f'{high_low_central}_max'] = max_df[f'{rsl_novlm}_{high_low_central}'].values
+    # Remove countries with fewer gauges than min_count
+    country_stats_df = country_stats_df.where(country_stats_df['count'] >= min_count).dropna()
+    # Sort by high-end median and reindex
+    country_stats_df = country_stats_df.sort_values(by='high_med')
+    country_stats_df = country_stats_df.reset_index()
     return country_stats_df
 
+
+# Older functions that need revising / deleting
 
 def fig_fusion_timeseries(gauge_city='Bangkok', gmsl_rsl_novlm='rsl'):
     """
