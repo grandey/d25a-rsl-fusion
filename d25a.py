@@ -675,11 +675,9 @@ def fig_proj_2100_map(proj_col_str='rsl_high', gauges_cities_megacities='megacit
     return fig, ax
 
 
-# Older functions that need revising / deleting
-
-def fig_city_proj():
+def fig_proj_2100_megacities():
     """
-    Plot high-end, low-end, and central RSL projections for 2100 for large coastal cities.
+    Plot high-end, low-end, and central year-2100 RSL projections for megacities.
 
     Returns
     -------
@@ -688,33 +686,34 @@ def fig_city_proj():
     """
     # Create figure and axes
     fig, ax = plt.subplots(1, 1, figsize=(8, 5), tight_layout=True)
-    # Get RSL and no-VLM projections for cities
-    rsl_df = get_info_high_low_exceed_df(rsl_novlm='rsl', cities=True)  # RSL
-    novlm_df = get_info_high_low_exceed_df(rsl_novlm='novlm', cities=True)  # RSL without VLM
-    proj_df = pd.merge(rsl_df, novlm_df, how='inner', on='city_name', suffixes=(None, '_novlm'))
+    # Get RSL and no-VLM projections for megacities
+    proj_df = read_proj_2100_df(gauges_cities_megacities='megacities')
+    proj_df = proj_df.dropna()
+    proj_df = proj_df.reset_index()
     # Sort by high-end RSL within each region
     proj_df.loc[len(proj_df)] = {'city_short': '—Asian megacities—', 'region': 'asia'}  # headers
     proj_df.loc[len(proj_df)] = {'city_short': '—Other megacities—', 'region': 'other'}
-    proj_df = proj_df.sort_values(by=['region', 'high'], ascending=[False, True] )
+    proj_df = proj_df.sort_values(by=['region', 'rsl_high'], ascending=[False, True] )
     proj_df = proj_df.reset_index()
     # Plot data
-    for col, label, color, marker in [('high', 'High-end', 'darkred', 'o'),
-                                      ('central', 'Central', 'lightblue', 'o'),
-                                      ('low', 'Low-end', 'darkgreen', 'o')]:
+    for col, label, color, marker in [('rsl_high', 'High-end', 'darkred', 'o'),
+                                      ('rsl_central', 'Central', 'lightblue', 'o'),
+                                      ('rsl_low', 'Low-end', 'darkgreen', 'o')]:
         # Plot RSL data
         ax.scatter(x=proj_df[col], y=proj_df.index, color=color, label=label, marker=marker, s=20)
+        # Plot VLM component for high-end
+        if col == 'rsl_high':
+            ax.hlines(proj_df.index, proj_df[f'novlm_high'], proj_df[col], color=color, alpha=0.7, label='VLM')
         # Plot GMSL data
-        gmsl = read_fusion_high_low(fusion_high_low=col, gmsl_rsl_novlm='gmsl', scenario=None ).sel(years=2100).data
+        gmsl_da = read_proj_ts_da(gmsl_rsl_novlm='gmsl', fusion_high_low_central=col.split('_')[-1],  scenario=None)
+        gmsl = gmsl_da.sel(years=2100).data
         ax.axvline(gmsl, color=color, alpha=0.5, linestyle='--')
-        if col == 'high':
+        if col == 'rsl_high':
             label2 = f'High-end GMSL'
         else:
             label2 = None
         ax.text(gmsl, proj_df.index.max()+0.3, label2,
                 rotation=90, va='top', ha='right', color=color, alpha=0.5)
-        # Plot VLM component
-        if col == 'high':
-            ax.hlines(proj_df.index, proj_df[f'{col}_novlm'], proj_df[col], color=color, alpha=0.7, label='VLM')
     # Legend
     ax.legend(loc='center right', bbox_to_anchor=(0.55, 0.55), title=None)
     # Tick labels etc
@@ -728,6 +727,8 @@ def fig_city_proj():
     ax.set_xlabel('RSL in 2100, m')
     return fig, ax
 
+
+# Older functions that need revising / deleting
 
 def fig_country_stats(rsl_novlm='rsl', min_count=4):
     """
@@ -840,32 +841,32 @@ def fig_rsl_vs_vlm():
     return fig, axs
 
 
-def fig_p_exceed():
-    """
-    Plot histogram showing probability of exceeding high-end projection at tide gauge locations.
-
-    Returns
-    -------
-    fig : figure
-    ax : Axes
-    """
-    # Create figure and axes
-    fig, ax = plt.subplots(1, 1, figsize=(5, 3.5), tight_layout=True)
-    # Get high-end projection data
-    proj_df = get_info_high_low_exceed_df(rsl_novlm='rsl')
-    # Loop over scenarios and plot
-    for scenario, binrange, color, hatch in [('ssp585', (-0.05, 5.25), 'darkred', '/'),
-                                             ('ssp126', (0, 5.2), 'green', None)]:
-        sns.histplot(proj_df[f'p_ex_high_{scenario}']*100, binwidth=0.1, binrange=binrange, stat='count',
-                     label=SSP_LABEL_DICT[scenario], color=color, hatch=hatch, ax=ax)
-    # Customise axes etc
-    plt.xlim([0, 5.1])
-    ax.xaxis.set_major_locator(plticker.MultipleLocator(base=0.5))
-    ax.yaxis.set_major_locator(plticker.MultipleLocator(base=100))
-    plt.xlabel('Probability of exceeding high-end RSL, %')
-    plt.ylabel('Number of tide gauge locations')
-    plt.legend()
-    return fig, ax
+# def fig_p_exceed():
+#     """
+#     Plot histogram showing probability of exceeding high-end projection at tide gauge locations.
+#
+#     Returns
+#     -------
+#     fig : figure
+#     ax : Axes
+#     """
+#     # Create figure and axes
+#     fig, ax = plt.subplots(1, 1, figsize=(5, 3.5), tight_layout=True)
+#     # Get high-end projection data
+#     proj_df = get_info_high_low_exceed_df(rsl_novlm='rsl')
+#     # Loop over scenarios and plot
+#     for scenario, binrange, color, hatch in [('ssp585', (-0.05, 5.25), 'darkred', '/'),
+#                                              ('ssp126', (0, 5.2), 'green', None)]:
+#         sns.histplot(proj_df[f'p_ex_high_{scenario}']*100, binwidth=0.1, binrange=binrange, stat='count',
+#                      label=SSP_LABEL_DICT[scenario], color=color, hatch=hatch, ax=ax)
+#     # Customise axes etc
+#     plt.xlim([0, 5.1])
+#     ax.xaxis.set_major_locator(plticker.MultipleLocator(base=0.5))
+#     ax.yaxis.set_major_locator(plticker.MultipleLocator(base=100))
+#     plt.xlabel('Probability of exceeding high-end RSL, %')
+#     plt.ylabel('Number of tide gauge locations')
+#     plt.legend()
+#     return fig, ax
 
 
 def name_save_fig(fig, fso='o', exts=('pdf', 'png'), close=False):
