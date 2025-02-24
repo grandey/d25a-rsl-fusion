@@ -594,6 +594,51 @@ def fig_fusion_ts(gauge_city='Bangkok', gmsl_rsl_novlm='rsl'):
     return fig, axs
 
 
+def fig_p_exceed_heatmap():
+    """
+    Plot heatmap table showing probability of GMSL exceeding the low-end, central, and high-end projections in 2100.
+
+    Returns
+    -------
+    fig : Figure
+    ax : Axes
+    """
+    # Create figure
+    fig, ax = plt.subplots(1, 1, figsize=(5.5, 2), tight_layout=True)
+    # For each combination of projection and scenario, calculate probability of exceeding projection
+    p_exceed_df = pd.DataFrame()
+    for high_low_central in ['low', 'central', 'high']:
+        for scenario in ['ssp585', 'ssp126']:
+            # Get and linearly interpolate quantile functions for fusion under specified scenario in 2100
+            fusion_da = read_proj_ts_da(gmsl_rsl_novlm='gmsl', fusion_high_low_central='fusion', scenario=scenario)
+            fusion_da = fusion_da.sel(years=2100)
+            fusion_da = fusion_da.interp(quantiles=np.linspace(0, 1, 20001), method='linear')  # interval of 0.005%
+            # Get high-end, low-end, or central projection
+            proj_da = read_proj_ts_da(gmsl_rsl_novlm='gmsl', fusion_high_low_central=high_low_central, scenario=None)
+            proj_val = proj_da.sel(years=2100).round(decimals=2).data
+            # Find approximate probability of exceeding projection
+            p_ex_da = (fusion_da > proj_val).mean(dim='quantiles')
+            p_ex_val = p_ex_da.round(decimals=4).data[0]  # round to nearest 0.01%
+            if high_low_central == 'central':
+                p_exceed_df.loc[SSP_LABEL_DICT[scenario], high_low_central.title()] = p_ex_val
+            else:
+                p_exceed_df.loc[SSP_LABEL_DICT[scenario], f'{high_low_central.title()}-end'] = p_ex_val
+    # Plot heatmap
+    sns.heatmap(p_exceed_df, annot=True, fmt='.1%', cmap='inferno_r', vmin=0., vmax=1.,
+                annot_kws={'weight': 'bold', 'fontsize': 'large'}, ax=ax)
+    # Change colorbar labels to percentage
+    cbar = ax.collections[0].colorbar
+    cbar.set_ticks([0., 1.])
+    cbar.set_ticklabels(['0%', '100%'])
+    # Customise plot
+    ax.tick_params(top=False, bottom=False, left=False, right=False, labeltop=True, labelbottom=False, rotation=0)
+    for label in ax.get_xticklabels() + ax.get_yticklabels():
+        label.set_fontweight('bold')
+        label.set_fontsize('large')
+    ax.set_title('Probability of GMSL exceeding projection in 2100', y=1.35)
+    return fig, ax
+
+
 def fig_proj_2100_map(proj_col_str='rsl_high', gauges_cities_megacities='megacities', region=None):
     """
     Plot map of high-end, low-end, or central projection for 2100.
