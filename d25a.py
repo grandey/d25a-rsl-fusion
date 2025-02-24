@@ -793,8 +793,6 @@ def fig_country_stats(rsl_novlm='rsl', min_count=4):
     return fig, (ax1, ax2)
 
 
-# Older functions that need revising / deleting
-
 def fig_rsl_vs_vlm():
     """
     Plot RSL vs VLM component of high-end projections for countries with the largest RSL ranges.
@@ -806,22 +804,20 @@ def fig_rsl_vs_vlm():
     """
     # Create figure and axes
     fig, axs = plt.subplots(2, 3, figsize=(10, 7), tight_layout=True)
-    # Get high-end projection data and merge into single DataFrame
-    rsl_df = get_info_high_low_exceed_df(rsl_novlm='rsl')
-    novlm_df = get_info_high_low_exceed_df(rsl_novlm='novlm')
-    merged_df = pd.merge(rsl_df, novlm_df, how='inner', on='gauge_name', suffixes=('_rsl', '_novlm'))
+    # Get year-2100 projection data for gauges
+    proj_df = read_proj_2100_df(gauges_cities_megacities='gauges').copy()
     # Calculate VLM contribution to high-end projection as difference between total RSL and no-VLM RSL
-    merged_df['high_vlm'] = merged_df['high_rsl'] - merged_df['high_novlm']
+    proj_df['vlm_high'] = proj_df['rsl_high'] - proj_df['novlm_high']
     # Identify countries with largest RSL ranges
-    stats_df = get_country_stats_df(rsl_novlm='rsl')
+    stats_df = get_country_stats_df(rsl_novlm='rsl', min_count=4)
     stats_df['high_range'] = stats_df['high_max'] - stats_df['high_min']
     stats_df = stats_df.sort_values('high_range', ascending=False)
-    countries = stats_df['country'][0:6]
+    countries = stats_df['gauge_country'][0:6]
     # Loop over countries and subplots
     for i, (country, ax) in enumerate(zip(countries, axs.flatten())):
-        country_df = merged_df[merged_df['country_rsl'] == country]  # select data for country
-        ax.scatter(country_df['high_vlm'], country_df['high_rsl'], marker='x', color='darkred', alpha=0.5)  # plot
-        r2 = stats.pearsonr(country_df['high_vlm'], country_df['high_rsl'])[0] ** 2   # coefficienct of determination
+        country_df = proj_df[proj_df['gauge_country'] == country]  # select data for country
+        ax.scatter(country_df['vlm_high'], country_df['rsl_high'], marker='x', color='darkred', alpha=0.5)  # plot
+        r2 = stats.pearsonr(country_df['vlm_high'], country_df['rsl_high'])[0] ** 2   # coefficienct of determination
         ax.text(0.05, 0.95, f'r$^2$ = {r2:.2f}', ha='left', va='top', transform=ax.transAxes, fontsize='large')
         ax.set_title(f'\n({chr(97+i)}) {country.title()}')  # title
         ax.set_aspect('equal')  # fixed aspect ratio
