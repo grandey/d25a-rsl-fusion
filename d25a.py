@@ -594,6 +594,65 @@ def fig_fusion_ts(gauge_city='Bangkok', gmsl_rsl_novlm='rsl'):
     return fig, axs
 
 
+def fig_vlm_sensitivity_ts(megacity='Bangkok', vlm_rate_b=-3):
+    """
+    Plot time series of high-end, central, and low-end projections using (a) AR6 VLM and (b) assumed VLM rate.
+
+    Parameters
+    ----------
+    megacity : str
+        Name of megacity. Default is 'Bangkok'.
+    vlm_rate_b : int or flt
+        Assumed VLM rate to use in panel (b), in mm/yr. Default is -3.
+
+    Returns
+    -------
+    fig : figure
+    axs : array of Axes
+    """
+    # Identify nearest gauge
+    cities_df = read_proj_2100_df(gauges_cities_megacities='megacities')
+    gauge = cities_df.loc[cities_df['city_short'] == megacity, 'gauge_name'].values[0]
+    # Create figure and axes
+    fig, axs = plt.subplots(1, 2, figsize=(9, 3.5), sharex=False, sharey=True, tight_layout=True)
+    # Loop over axes
+    for i, ax in enumerate(axs):
+        # Loop over high-end, central, and low-end projections
+        for high_low_central, color in [('high', 'darkred'), ('central', 'lightblue'), ('low', 'darkgreen')]:
+            # Get data
+            if i == 0:
+                proj_da = read_proj_ts_da(gmsl_rsl_novlm='rsl', fusion_high_low_central=high_low_central, scenario=None
+                                          ).sel(locations=get_gauge_info(gauge=gauge)['gauge_id']).squeeze()
+            else:
+                proj_da = read_proj_ts_da(gmsl_rsl_novlm='novlm', fusion_high_low_central=high_low_central,
+                                          scenario=None
+                                          ).sel(locations=get_gauge_info(gauge=gauge)['gauge_id']).squeeze()
+                proj_da = proj_da - vlm_rate_b * 1e-3 * (proj_da['years'] - 2005)  # add assumed VLM rate
+            # Label
+            if high_low_central == 'central':
+                label = high_low_central.title()
+            else:
+                label = f'{high_low_central.title()}-end'
+            # Plot
+            ax.plot(proj_da['years'], proj_da, color=color, alpha=1, label=label)
+        # Customise plot
+        if i == 0:
+            ax.set_title('(a) Using AR6 VLM component')
+        else:
+            ax.set_title(f'(b) Assuming VLM rate of {vlm_rate_b:.1f} mm/yr')
+        ax.legend(loc='upper left')
+        ax.set_xlim([2020, 2100])
+        ax.set_xlabel('Year')
+        if i == 0:
+            ax.set_ylabel(f'RSL near {megacity}, m')
+        if i == 1:
+            ax.tick_params(axis='y', labelright=True)
+        if megacity == 'Bangkok':
+            ax.set_ylim(0, 3.3)
+        ax.yaxis.set_major_locator(plticker.MultipleLocator(base=0.5))
+    return fig, axs
+
+
 def fig_p_exceed_heatmap():
     """
     Plot heatmap table showing probability of GMSL exceeding the low-end, central, and high-end projections in 2100.
