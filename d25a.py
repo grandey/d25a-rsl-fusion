@@ -741,12 +741,12 @@ def fig_proj_2100_megacities():
     proj_df = proj_df.sort_values(by=['region', 'rsl_high'], ascending=[False, True] )
     proj_df = proj_df.reset_index()
     # Plot data
-    for col, label, color, marker in [('rsl_high', 'High-end', 'darkred', 'x'),
-                                      ('novlm_high', 'High-end without VLM', 'darkred', 'o'),
-                                      ('rsl_central', 'Central', 'lightblue', 'x'),
-                                      ('novlm_central', 'Central without VLM', 'lightblue', 'o'),
-                                      ('rsl_low', 'Low-end', 'darkgreen', 'x'),
-                                      ('novlm_low', 'Low-end without VLM', 'darkgreen', 'o')]:
+    for col, label, color, marker, offset in [('rsl_high', 'High-end', 'darkred', 'x', 0.15),
+                                              ('novlm_high', 'High-end without VLM', 'darkred', 'o', -0.15),
+                                              ('rsl_central', 'Central', 'lightblue', 'x', 0.15),
+                                              ('novlm_central', 'Central without VLM', 'lightblue', 'o', -0.15),
+                                              ('rsl_low', 'Low-end', 'darkgreen', 'x', 0.15),
+                                              ('novlm_low', 'Low-end without VLM', 'darkgreen', 'o', -0.15)]:
         # Plot GMSL data
         gmsl_da = read_proj_ts_da(gmsl_rsl_novlm='gmsl', fusion_high_low_central=col.split('_')[-1],  scenario=None)
         gmsl = gmsl_da.sel(years=2100).data
@@ -758,7 +758,7 @@ def fig_proj_2100_megacities():
         ax.text(gmsl, proj_df.index.max()+0.3, label2,
                 rotation=90, va='top', ha='right', color=color, alpha=0.5)
         # Plot RSL data
-        ax.scatter(x=proj_df[col], y=proj_df.index, color=color, label=label, marker=marker, s=20)
+        ax.scatter(x=proj_df[col], y=proj_df.index+offset, color=color, label=label, marker=marker, s=20)
         # # Plot VLM component for high-end
         # if col == 'rsl_high':
         #     ax.hlines(proj_df.index, proj_df[f'novlm_high'], proj_df[col], color=color, alpha=0.7, label='VLM')
