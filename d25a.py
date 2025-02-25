@@ -741,14 +741,12 @@ def fig_proj_2100_megacities():
     proj_df = proj_df.sort_values(by=['region', 'rsl_high'], ascending=[False, True] )
     proj_df = proj_df.reset_index()
     # Plot data
-    for col, label, color, marker in [('rsl_high', 'High-end', 'darkred', 'o'),
-                                      ('rsl_central', 'Central', 'lightblue', 'o'),
-                                      ('rsl_low', 'Low-end', 'darkgreen', 'o')]:
-        # Plot RSL data
-        ax.scatter(x=proj_df[col], y=proj_df.index, color=color, label=label, marker=marker, s=20)
-        # Plot VLM component for high-end
-        if col == 'rsl_high':
-            ax.hlines(proj_df.index, proj_df[f'novlm_high'], proj_df[col], color=color, alpha=0.7, label='VLM')
+    for col, label, color, marker in [('rsl_high', 'High-end', 'darkred', 'x'),
+                                      ('novlm_high', 'High-end without VLM', 'darkred', 'o'),
+                                      ('rsl_central', 'Central', 'lightblue', 'x'),
+                                      ('novlm_central', 'Central without VLM', 'lightblue', 'o'),
+                                      ('rsl_low', 'Low-end', 'darkgreen', 'x'),
+                                      ('novlm_low', 'Low-end without VLM', 'darkgreen', 'o')]:
         # Plot GMSL data
         gmsl_da = read_proj_ts_da(gmsl_rsl_novlm='gmsl', fusion_high_low_central=col.split('_')[-1],  scenario=None)
         gmsl = gmsl_da.sel(years=2100).data
@@ -759,13 +757,18 @@ def fig_proj_2100_megacities():
             label2 = None
         ax.text(gmsl, proj_df.index.max()+0.3, label2,
                 rotation=90, va='top', ha='right', color=color, alpha=0.5)
+        # Plot RSL data
+        ax.scatter(x=proj_df[col], y=proj_df.index, color=color, label=label, marker=marker, s=20)
+        # # Plot VLM component for high-end
+        # if col == 'rsl_high':
+        #     ax.hlines(proj_df.index, proj_df[f'novlm_high'], proj_df[col], color=color, alpha=0.7, label='VLM')
     # Legend
-    ax.legend(loc='center right', bbox_to_anchor=(0.55, 0.55), title=None)
+    ax.legend(loc='center right', title=None)
     # Tick labels etc
     ax.set_yticks(proj_df.index)
     ax.set_yticklabels(proj_df['city_short'], weight='bold')
     ax.set_ylim(proj_df.index.min() - 0.5, proj_df.index.max() + 0.5)
-    ax.set_xlim(-0.4, 3.3)
+    ax.set_xlim(-0.4, 3.8)
     ax.xaxis.set_major_locator(plticker.MultipleLocator(base=0.5))
     ax.tick_params(labelbottom=True, labeltop=True, labelleft=False, labelright=True,
                    bottom=False, top=False, right=False, left=False)
