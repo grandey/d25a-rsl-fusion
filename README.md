@@ -1,9 +1,9 @@
-# Analysis Code for _High-end and low-end projections of relative sea-level rise_ (d25a-rsl-fusion)
+# Analysis Code for _Worst-case projections of relative sea-level rise_ (d25a-rsl-fusion)
 
 ## Usage guidelines
 This repository accompanies the following manuscript:
 
-B. S. Grandey et al.,  **High-end and low-end projections of relative sea-level rise**, in preparation.
+B. S. Grandey et al.,  **Worst-case projections of relative sea-level rise**, in preparation.
 
 The manuscript serves as the primary reference.
 The Zenodo archive of this repository serves as a secondary reference.
@@ -56,7 +56,7 @@ cd ../..
 ```
 
 ### 3. Produce data for fusion, high-end, and low-end projections
-[**`data_d25a.ipynb`**](data_d25a.ipynb) uses the input data to produce the fusion, high-end, and low-end projections, which are saved to [**`data_d25a/`**](data_d25a/).
+[**`data_d25a.ipynb`**](data_d25a.ipynb) uses the input data to produce the fusion, high-end, low-end, and central projections, which are saved to [**`data_d25a/`**](data_d25a/).
 
 ### 4. Analyse data and produce figures
 [**`figs_d25a.ipynb`**](figs_d25a.ipynb) analyses the projections and produces the figures.
