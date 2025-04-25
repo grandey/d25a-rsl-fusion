@@ -39,7 +39,7 @@ plt.rcParams['axes.axisbelow'] = True  # grid should be behind other elements
 plt.rcParams['grid.color'] = '0.95'
 
 # Constants
-SSP_LABEL_DICT = {'ssp126': 'SSP1-2.6', 'ssp585': 'SSP5-8.5'}  # names of scenarios
+SCENARIO_LABEL_DICT = {'ssp126': 'SSP1-2.6', 'ssp585': 'SSP5-8.5', 'ssp245': 'SSP2-4.5'}  # names of scenarios
 AR6_DIR = Path.cwd() / 'data_in' / 'ar6'  # directory containing AR6 input data
 PSMSL_DIR = Path.cwd() / 'data_in' / 'psmsl'  # directory containing PSMSL catalogue file
 DATA_DIR = Path.cwd() / 'data_d25a'  # directory containing projections produced by data_d25a.ipynb
@@ -442,9 +442,9 @@ def get_proj_2100_summary_df(gauges_cities_megacities='megacities'):
 #     for high_low in ['low', 'central', 'high']:
 #         for scenario in ['ssp126', 'ssp585']:
 #             if high_low == 'central':
-#                 new_col_name = f'Central under {SSP_LABEL_DICT[scenario]}'
+#                 new_col_name = f'Central under {SCENARIO_LABEL_DICT[scenario]}'
 #             else:
-#                 new_col_name = f'{high_low.title()}-end under {SSP_LABEL_DICT[scenario]}'
+#                 new_col_name = f'{high_low.title()}-end under {SCENARIO_LABEL_DICT[scenario]}'
 #             rsl_df = rsl_df.rename(columns={f'p_ex_{high_low}_{scenario}': new_col_name})
 #     # Use short name of city as index
 #     rsl_df = rsl_df.set_index('City')
@@ -569,7 +569,7 @@ def fig_fusion_ts(gauge_city='Bangkok', gmsl_rsl_novlm='rsl'):
             proj_da = proj_da.sel(locations=get_gauge_info(gauge=gauge)['gauge_id']).squeeze()
         ax.plot(proj_da['years'], proj_da, color=color, alpha=1, label=f'{high_low.title()}-end projection')
         # Customise plot
-        ax.set_title(f'({chr(97+i)}) {SSP_LABEL_DICT[scenario]}')
+        ax.set_title(f'({chr(97+i)}) {SCENARIO_LABEL_DICT[scenario]}')
         ax.legend(loc='upper left', reverse=True)
         ax.set_xlim([2020, 2100])
         ax.set_xlabel('Year')
@@ -679,9 +679,9 @@ def fig_p_exceed_heatmap():
             p_ex_da = (fusion_da > proj_val).mean(dim='quantiles')
             p_ex_val = p_ex_da.round(decimals=4).data[0]  # round to nearest 0.01%
             if high_low_central == 'central':
-                p_exceed_df.loc[SSP_LABEL_DICT[scenario], high_low_central.title()] = p_ex_val
+                p_exceed_df.loc[SCENARIO_LABEL_DICT[scenario], high_low_central.title()] = p_ex_val
             else:
-                p_exceed_df.loc[SSP_LABEL_DICT[scenario], f'{high_low_central.title()}-end'] = p_ex_val
+                p_exceed_df.loc[SCENARIO_LABEL_DICT[scenario], f'{high_low_central.title()}-end'] = p_ex_val
     # Plot heatmap
     sns.heatmap(p_exceed_df, annot=True, fmt='.1%', cmap='inferno_r', vmin=0., vmax=1.,
                 annot_kws={'weight': 'bold', 'fontsize': 'large'}, ax=ax)
@@ -957,7 +957,7 @@ def fig_rsl_vs_vlm():
 #     for scenario, binrange, color, hatch in [('ssp585', (-0.05, 5.25), 'darkred', '/'),
 #                                              ('ssp126', (0, 5.2), 'green', None)]:
 #         sns.histplot(proj_df[f'p_ex_high_{scenario}']*100, binwidth=0.1, binrange=binrange, stat='count',
-#                      label=SSP_LABEL_DICT[scenario], color=color, hatch=hatch, ax=ax)
+#                      label=SCENARIO_LABEL_DICT[scenario], color=color, hatch=hatch, ax=ax)
 #     # Customise axes etc
 #     plt.xlim([0, 5.1])
 #     ax.xaxis.set_major_locator(plticker.MultipleLocator(base=0.5))
