@@ -40,6 +40,7 @@ plt.rcParams['grid.color'] = '0.95'
 
 # Constants
 SCENARIO_LABEL_DICT = {'ssp126': 'SSP1-2.6', 'ssp585': 'SSP5-8.5', 'ssp245': 'SSP2-4.5'}  # names of scenarios
+SLR_LABEL_DICT = {'gmsl': 'Global mean SLR', 'rsl': 'Relative SLR', 'novlm': 'Geocentric SLR'}
 AR6_DIR = Path.cwd() / 'data_in' / 'ar6'  # directory containing AR6 input data
 PSMSL_DIR = Path.cwd() / 'data_in' / 'psmsl'  # directory containing PSMSL catalogue file
 DATA_DIR = Path.cwd() / 'data_d25a'  # directory containing projections produced by data_d25a.ipynb
@@ -107,7 +108,7 @@ def get_gauge_info(gauge='TANJONG_PAGAR'):
 
 
 @cache
-def get_sl_qfs(workflow='fusion_1e+2e', gmsl_rsl_novlm='rsl', scenario='ssp585'):
+def get_sl_qfs(workflow='fusion_1e+2e', slr_str='rsl', scenario='ssp585'):
     """
     Return quantile functions corresponding to a probabilistic projection of sea-level rise.
 
@@ -116,7 +117,7 @@ def get_sl_qfs(workflow='fusion_1e+2e', gmsl_rsl_novlm='rsl', scenario='ssp585')
     workflow : str
         AR6 workflow (e.g. 'wf_1e'), p-box bound ('lower', 'upper', 'outer'), effective distribution (e.g.
         'effective_0.5'), mean (e.g. 'mean_1e+2e'), or fusion (e.g. 'fusion_1e+2e', default).
-    gmsl_rsl_novlm : str
+    slr_str : str
         Return global mean sea level ('gmsl'), relative sea level (RSL) at gauge locations ('rsl'; default), or
         RSL without the background component ('novlm').
     scenario : str
@@ -136,21 +137,21 @@ def get_sl_qfs(workflow='fusion_1e+2e', gmsl_rsl_novlm='rsl', scenario='ssp585')
     # Case 1: single workflow, corresponding to one of the alternative projections
     if workflow in ['wf_1e', 'wf_1f', 'wf_2e', 'wf_2f', 'wf_3e', 'wf_3f', 'wf_4']:
         # Read data
-        if gmsl_rsl_novlm == 'gmsl':  # GMSL
+        if slr_str == 'gmsl':  # GMSL
             in_dir = AR6_DIR / 'ar6' / 'global' / 'dist_workflows' / workflow / scenario
-        elif gmsl_rsl_novlm == 'rsl':  # RSL
+        elif slr_str == 'rsl':  # RSL
             in_dir = AR6_DIR / 'ar6-regional-distributions' / 'regional' / 'dist_workflows' / workflow / scenario
-        elif gmsl_rsl_novlm == 'novlm':  # RSL
+        elif slr_str == 'novlm':  # RSL
             in_dir = (AR6_DIR / 'ar6-regional_novlm-distributions' / 'regional_novlm' / 'dist_workflows' / workflow
                       / scenario)
         else:
-            raise ValueError(f"gmsl_rsl_vlm should be 'gmsl', 'rsl', or 'novlm', not '{gmsl_rsl_novlm}'.")
+            raise ValueError(f"slr_str should be 'gmsl', 'rsl', or 'novlm', not '{slr_str}'.")
         in_fn = in_dir / 'total-workflow.nc'
         qfs_da = xr.open_dataset(in_fn)['sea_level_change']
         # Include only 21st century
         qfs_da = qfs_da.sel(years=slice(2000, 2100))
         # Exclude grid locations
-        if gmsl_rsl_novlm != 'gmsl':
+        if slr_str != 'gmsl':
             qfs_da = qfs_da.sel(locations=slice(0, int(1e8)))
         # Change units from mm to m
         qfs_da = qfs_da / 1000.
@@ -162,7 +163,7 @@ def get_sl_qfs(workflow='fusion_1e+2e', gmsl_rsl_novlm='rsl', scenario='ssp585')
         # Get quantile function data for each of these workflows and scenarios
         qfs_da_list = []
         for wf in wf_list:
-            qfs_da_list.append(get_sl_qfs(workflow=wf, gmsl_rsl_novlm=gmsl_rsl_novlm, scenario=scenario))
+            qfs_da_list.append(get_sl_qfs(workflow=wf, slr_str=slr_str, scenario=scenario))
         concat_da = xr.concat(qfs_da_list, 'wf')
         # Find lower or upper bound
         if workflow == 'lower':
@@ -172,8 +173,8 @@ def get_sl_qfs(workflow='fusion_1e+2e', gmsl_rsl_novlm='rsl', scenario='ssp585')
     # Case 3: Outer bound of p-box
     elif workflow == 'outer':
         # Get data for lower and upper p-box bounds
-        lower_da = get_sl_qfs(workflow='lower', gmsl_rsl_novlm=gmsl_rsl_novlm, scenario=scenario)
-        upper_da = get_sl_qfs(workflow='upper', gmsl_rsl_novlm=gmsl_rsl_novlm, scenario=scenario)
+        lower_da = get_sl_qfs(workflow='lower', slr_str=slr_str, scenario=scenario)
+        upper_da = get_sl_qfs(workflow='upper', slr_str=slr_str, scenario=scenario)
         # Derive outer bound
         qfs_da = xr.concat([lower_da.sel(quantiles=slice(0, 0.5)),  # lower bound below median
                             upper_da.sel(quantiles=slice(0.500001, 1))],  # upper bound above median
@@ -182,8 +183,8 @@ def get_sl_qfs(workflow='fusion_1e+2e', gmsl_rsl_novlm='rsl', scenario='ssp585')
     # Case 4: "effective" quantile function (Rohmer et al., 2019)
     elif 'effective' in workflow:
         # Get data for lower and upper p-box bounds
-        lower_da = get_sl_qfs(workflow='lower', gmsl_rsl_novlm=gmsl_rsl_novlm, scenario=scenario)
-        upper_da = get_sl_qfs(workflow='upper', gmsl_rsl_novlm=gmsl_rsl_novlm, scenario=scenario)
+        lower_da = get_sl_qfs(workflow='lower', slr_str=slr_str, scenario=scenario)
+        upper_da = get_sl_qfs(workflow='upper', slr_str=slr_str, scenario=scenario)
         # Get constant weight w
         w = float(workflow.split('_')[-1])
         # Derive effective distribution
@@ -193,7 +194,7 @@ def get_sl_qfs(workflow='fusion_1e+2e', gmsl_rsl_novlm='rsl', scenario='ssp585')
         # Get quantile function data for workflows and scenarios
         qfs_da_list = []
         for wf in [f'wf_{s}' for s in workflow.split('_')[-1].split('+')]:
-            qfs_da_list.append(get_sl_qfs(workflow=wf, gmsl_rsl_novlm=gmsl_rsl_novlm, scenario=scenario))
+            qfs_da_list.append(get_sl_qfs(workflow=wf, slr_str=slr_str, scenario=scenario))
         concat_da = xr.concat(qfs_da_list, dim='wf')
         # Derive mean
         qfs_da = concat_da.mean(dim='wf')
@@ -204,8 +205,8 @@ def get_sl_qfs(workflow='fusion_1e+2e', gmsl_rsl_novlm='rsl', scenario='ssp585')
             wf = f'mean_{workflow.split("_")[-1]}'
         else:  # use single workflow for preferred workflow
             wf = f'wf_{workflow.split("_")[-1]}'
-        pref_da = get_sl_qfs(workflow=wf, gmsl_rsl_novlm=gmsl_rsl_novlm, scenario=scenario)
-        outer_da = get_sl_qfs(workflow='outer', gmsl_rsl_novlm=gmsl_rsl_novlm, scenario=scenario)
+        pref_da = get_sl_qfs(workflow=wf, slr_str=slr_str, scenario=scenario)
+        outer_da = get_sl_qfs(workflow='outer', slr_str=slr_str, scenario=scenario)
         # Weighting function, with weights depending on probability p
         w_da = get_fusion_weights()
         # Derive fusion distribution; rely on automatic broadcasting/alignment
@@ -230,7 +231,7 @@ def get_fusion_weights():
         DataArray of weights for preferred workflow, with weights depending on probability.
     """
     # Get a quantile function corresponding to a projection of total sea level, to use as template
-    qfs_da = get_sl_qfs(workflow='wf_1e', gmsl_rsl_novlm='gmsl', scenario='ssp585').copy()
+    qfs_da = get_sl_qfs(workflow='wf_1e', slr_str='gmsl', scenario='ssp585').copy()
     w_da = qfs_da.sel(years=2100).squeeze()
     # Update data to follow trapezoidal weighting function, with weights depending on probability
     da1 = w_da.sel(quantiles=slice(0, 0.169999))
@@ -248,13 +249,13 @@ def get_fusion_weights():
 # Functions used by figs_d25a.ipynb
 
 @cache
-def read_proj_ts_da(gmsl_rsl_novlm='gmsl', fusion_high_low_central='fusion', scenario='ssp585'):
+def read_proj_ts_da(slr_str='gmsl', fusion_high_low_central='fusion', scenario='ssp585'):
     """
     Read projection time-series DataArray produced by data_d25a.ipynb.
 
     Parameters
     ----------
-    gmsl_rsl_novlm : str
+    slr_str : str
         GMSL ('gmsl'; default), RSL at gauges ('rsl'), or RSL without the background component ('novlm').
     fusion_high_low_central : str
         Choose whether to read full fusion ('fusion'), high-end ('high'), low-end ('low'), or central ('central')
@@ -271,9 +272,9 @@ def read_proj_ts_da(gmsl_rsl_novlm='gmsl', fusion_high_low_central='fusion', sce
     in_dir = DATA_DIR / 'time_series'
     # File to read
     if fusion_high_low_central == 'fusion':
-        in_fn = in_dir / f'{gmsl_rsl_novlm}_fusion_{scenario}_d25a.nc'
+        in_fn = in_dir / f'{slr_str}_fusion_{scenario}_d25a.nc'
     elif fusion_high_low_central in ['high', 'low', 'central']:
-        in_fn = in_dir / f'{gmsl_rsl_novlm}_{fusion_high_low_central}_d25a.nc'
+        in_fn = in_dir / f'{slr_str}_{fusion_high_low_central}_d25a.nc'
     # Read data
     proj_ts_da = xr.open_dataset(in_fn)['sea_level_change']
     return proj_ts_da
@@ -310,13 +311,13 @@ def read_proj_2100_df(gauges_cities_megacities='megacities'):
 
 
 # @cache
-# def get_info_high_low_exceed_df(rsl_novlm='rsl', cities=False):
+# def get_info_high_low_exceed_df(slr_str='rsl', cities=False):
 #     """
 #     Return gauge info, high-end, low-end, and central projection for 2100, and the probabilities of exceeding these.
 #
 #     Parameters
 #     ----------
-#     rsl_novlm : str
+#     slr_str : str
 #         RSL ('rsl'; default) or RSL without the background component ('novlm').
 #     cities : bool
 #         If True, return data for large cities. If False (default), return data for all available gauges.
@@ -334,18 +335,18 @@ def read_proj_2100_df(gauges_cities_megacities='megacities'):
 #     proj_df.loc[(proj_df['lon'] > 60), 'region'] = 'asia'
 #     # Read high-end, low-end, and central projections for the year 2100
 #     for high_low in ['high', 'low', 'central']:
-#         temp_da = read_fusion_high_low(fusion_high_low=high_low, gmsl_rsl_novlm=rsl_novlm, scenario=None)
+#         temp_da = read_fusion_high_low(fusion_high_low=high_low, slr_str=slr_str, scenario=None)
 #         temp_ser = temp_da.sel(years=2100).rename({'locations': 'gauge_id'}).to_series().rename(high_low)
 #         proj_df = pd.merge(proj_df, temp_ser, on='gauge_id')
 #     # Probability of exceeding high-end, low-end, and central projections under different scenarios
 #     for high_low in ['high', 'low', 'central']:
 #         for scenario in ['ssp585', 'ssp126']:
 #             # Get and linearly interpolate quantile functions for fusion under specified scenario in 2100
-#             fusion_da = read_fusion_high_low(fusion_high_low='fusion', gmsl_rsl_novlm=rsl_novlm, scenario=scenario
+#             fusion_da = read_fusion_high_low(fusion_high_low='fusion', slr_str=slr_str, scenario=scenario
 #                                              ).sel(years=2100)
 #             fusion_da = fusion_da.interp(quantiles=np.linspace(0, 1, 20001), method='linear')  # interval of 0.005%
 #             # Get high-end, low-end, or central projection
-#             high_low_da = read_fusion_high_low(fusion_high_low=high_low, gmsl_rsl_novlm=rsl_novlm, scenario=None)
+#             high_low_da = read_fusion_high_low(fusion_high_low=high_low, slr_str=slr_str, scenario=None)
 #             # Find approximate probability of exceeding projection
 #             p_ex_da = (fusion_da > high_low_da).mean(dim='quantiles')
 #             p_ex_da = p_ex_da.round(decimals=4)  # round to nearest 0.01%
@@ -418,7 +419,7 @@ def get_proj_2100_summary_df(gauges_cities_megacities='megacities'):
 #     table_df : DataFrame
 #     """
 #     # Get RSL projections and associated data for cities
-#     rsl_df = get_info_high_low_exceed_df(rsl_novlm='rsl', cities=True).copy()
+#     rsl_df = get_info_high_low_exceed_df(slr_str='rsl', cities=True).copy()
 #     # Calculate summary statistics
 #     max_ser = rsl_df.max(numeric_only=True)
 #     med_ser = rsl_df.median(numeric_only=True)
@@ -455,13 +456,13 @@ def get_proj_2100_summary_df(gauges_cities_megacities='megacities'):
 
 
 @cache
-def get_country_stats_df(rsl_novlm='rsl', min_count=4):
+def get_country_stats_df(slr_str='rsl', min_count=4):
     """
     Return country-level statistics across gauges for year-2100 projections.
 
     Parameters
     ----------
-    rsl_novlm : str
+    slr_str : str
         RSL ('rsl'; default) or RSL without the background component ('novlm').
     min_count : int
         Minimum number of tide gauges required for country to be included. Default is 4.
@@ -494,11 +495,11 @@ def get_country_stats_df(rsl_novlm='rsl', min_count=4):
     country_stats_df = pd.DataFrame(columns=columns)
     country_stats_df['gauge_country'] = count_df.index
     country_stats_df['country'] = countries
-    country_stats_df['count'] = count_df[f'{rsl_novlm}_high'].values
+    country_stats_df['count'] = count_df[f'{slr_str}_high'].values
     for high_low_central in ['low', 'central', 'high']:
-        country_stats_df[f'{high_low_central}_med'] = med_df[f'{rsl_novlm}_{high_low_central}'].values
-        country_stats_df[f'{high_low_central}_min'] = min_df[f'{rsl_novlm}_{high_low_central}'].values
-        country_stats_df[f'{high_low_central}_max'] = max_df[f'{rsl_novlm}_{high_low_central}'].values
+        country_stats_df[f'{high_low_central}_med'] = med_df[f'{slr_str}_{high_low_central}'].values
+        country_stats_df[f'{high_low_central}_min'] = min_df[f'{slr_str}_{high_low_central}'].values
+        country_stats_df[f'{high_low_central}_max'] = max_df[f'{slr_str}_{high_low_central}'].values
     # Remove countries with fewer gauges than min_count
     country_stats_df = country_stats_df.where(country_stats_df['count'] >= min_count).dropna()
     # Sort by high-end median and reindex
@@ -507,7 +508,7 @@ def get_country_stats_df(rsl_novlm='rsl', min_count=4):
     return country_stats_df
 
 
-def fig_fusion_ts(gauge_city='Bangkok', gmsl_rsl_novlm='rsl'):
+def fig_fusion_ts(gauge_city='Bangkok', slr_str='rsl'):
     """
     Plot time series of median, likely range, and very likely range of sea level for (a) SSP5-8.5 and (b) SSP1-2.6.
     Also plot high-end and low-end projections.
@@ -515,8 +516,8 @@ def fig_fusion_ts(gauge_city='Bangkok', gmsl_rsl_novlm='rsl'):
     Parameters
     ----------
     gauge_city : int, str, or None.
-        Name of gauge or city. Or ID of gauge. Default is 'Bangkok'. Ignored if gmsl_rsl_novlm is 'gmsl'.
-    gmsl_rsl_novlm : str
+        Name of gauge or city. Or ID of gauge. Default is 'Bangkok'. Ignored if slr_str is 'gmsl'.
+    slr_str : str
         Global mean sea level ('gmsl'), RSL ('rsl'; default), or RSL without the background component ('novlm').
 
     Returns
@@ -529,12 +530,12 @@ def fig_fusion_ts(gauge_city='Bangkok', gmsl_rsl_novlm='rsl'):
     # Loop over scenarios and axes
     for i, (scenario, ax) in enumerate(zip(['ssp585', 'ssp126'], axs)):
         # Get fusion data
-        if gmsl_rsl_novlm == 'gmsl':
-            fusion_da = read_proj_ts_da(gmsl_rsl_novlm='gmsl', fusion_high_low_central='fusion',
+        if slr_str == 'gmsl':
+            fusion_da = read_proj_ts_da(slr_str='gmsl', fusion_high_low_central='fusion',
                                         scenario=scenario).squeeze()
             city, gauge = None, None
         else:
-            fusion_da = read_proj_ts_da(gmsl_rsl_novlm=gmsl_rsl_novlm, fusion_high_low_central='fusion',
+            fusion_da = read_proj_ts_da(slr_str=slr_str, fusion_high_low_central='fusion',
                                         scenario=scenario)
             try:  # Is gauge parameter a tide gauge?
                 fusion_da = fusion_da.sel(locations=get_gauge_info(gauge=gauge_city)['gauge_id']).squeeze()
@@ -564,8 +565,8 @@ def fig_fusion_ts(gauge_city='Bangkok', gmsl_rsl_novlm='rsl'):
         elif scenario == 'ssp126':
             high_low = 'low'
             color = 'darkgreen'
-        proj_da = read_proj_ts_da(gmsl_rsl_novlm=gmsl_rsl_novlm, fusion_high_low_central=high_low, scenario=None)
-        if gmsl_rsl_novlm != 'gmsl':
+        proj_da = read_proj_ts_da(slr_str=slr_str, fusion_high_low_central=high_low, scenario=None)
+        if slr_str != 'gmsl':
             proj_da = proj_da.sel(locations=get_gauge_info(gauge=gauge)['gauge_id']).squeeze()
         ax.plot(proj_da['years'], proj_da, color=color, alpha=1, label=f'{high_low.title()}-end projection')
         # Customise plot
@@ -574,21 +575,15 @@ def fig_fusion_ts(gauge_city='Bangkok', gmsl_rsl_novlm='rsl'):
         ax.set_xlim([2020, 2100])
         ax.set_xlabel('Year')
         if i == 0:
-            if gmsl_rsl_novlm == 'gmsl':
-                ax.set_ylabel('Global mean sea level, m')
-            elif gmsl_rsl_novlm == 'rsl':
-                if city:
-                    ax.set_ylabel(f'RSL near {city}, m')
-                else:
-                    ax.set_ylabel(f'RSL at {gauge.replace("_", " ").title()}, m')
-            elif gmsl_rsl_novlm == 'novlm':
-                if city:
-                    ax.set_ylabel(f'RSL without VLM near {city}, m')
-                else:
-                    ax.set_ylabel(f'RSL without VLM at {gauge.replace("_", " ").title()}, m')
+            if slr_str == 'gmsl':
+                ax.set_ylabel(f'{SLR_LABEL_DICT[slr_str]}, m')
+            elif city:
+                ax.set_ylabel(f'{SLR_LABEL_DICT[slr_str]} near {city}, m')
+            else:
+                ax.set_ylabel(f'{SLR_LABEL_DICT[slr_str]} at {gauge.replace("_", " ").title()}, m')
         if i == 1:
             ax.tick_params(axis='y', labelright=True)
-        if gmsl_rsl_novlm == 'gmsl':
+        if slr_str == 'gmsl':
             ax.set_ylim([0, 2])
         ax.yaxis.set_major_locator(plticker.MultipleLocator(base=0.5))
     return fig, axs
@@ -621,10 +616,10 @@ def fig_vlm_sensitivity_ts(megacity='Bangkok', vlm_rate_b=-3):
         for high_low_central, color in [('high', 'darkred'), ('central', 'lightblue'), ('low', 'darkgreen')]:
             # Get data
             if i == 0:
-                proj_da = read_proj_ts_da(gmsl_rsl_novlm='rsl', fusion_high_low_central=high_low_central, scenario=None
+                proj_da = read_proj_ts_da(slr_str='rsl', fusion_high_low_central=high_low_central, scenario=None
                                           ).sel(locations=get_gauge_info(gauge=gauge)['gauge_id']).squeeze()
             else:
-                proj_da = read_proj_ts_da(gmsl_rsl_novlm='novlm', fusion_high_low_central=high_low_central,
+                proj_da = read_proj_ts_da(slr_str='novlm', fusion_high_low_central=high_low_central,
                                           scenario=None
                                           ).sel(locations=get_gauge_info(gauge=gauge)['gauge_id']).squeeze()
                 proj_da = proj_da - vlm_rate_b * 1e-3 * (proj_da['years'] - 2005)  # add assumed VLM rate
@@ -644,7 +639,7 @@ def fig_vlm_sensitivity_ts(megacity='Bangkok', vlm_rate_b=-3):
         ax.set_xlim([2020, 2100])
         ax.set_xlabel('Year')
         if i == 0:
-            ax.set_ylabel(f'RSL near {megacity}, m')
+            ax.set_ylabel(f'{SLR_LABEL_DICT["rsl"]} near {megacity}, m')
         if i == 1:
             ax.tick_params(axis='y', labelright=True)
         if megacity == 'Bangkok':
@@ -669,11 +664,11 @@ def fig_p_exceed_heatmap():
     for high_low_central in ['low', 'central', 'high']:
         for scenario in ['ssp585', 'ssp126']:
             # Get and linearly interpolate quantile functions for fusion under specified scenario in 2100
-            fusion_da = read_proj_ts_da(gmsl_rsl_novlm='gmsl', fusion_high_low_central='fusion', scenario=scenario)
+            fusion_da = read_proj_ts_da(slr_str='gmsl', fusion_high_low_central='fusion', scenario=scenario)
             fusion_da = fusion_da.sel(years=2100)
             fusion_da = fusion_da.interp(quantiles=np.linspace(0, 1, 20001), method='linear')  # interval of 0.005%
             # Get high-end, low-end, or central projection
-            proj_da = read_proj_ts_da(gmsl_rsl_novlm='gmsl', fusion_high_low_central=high_low_central, scenario=None)
+            proj_da = read_proj_ts_da(slr_str='gmsl', fusion_high_low_central=high_low_central, scenario=None)
             proj_val = proj_da.sel(years=2100).round(decimals=2).data
             # Find approximate probability of exceeding projection
             p_ex_da = (fusion_da > proj_val).mean(dim='quantiles')
@@ -694,7 +689,7 @@ def fig_p_exceed_heatmap():
     for label in ax.get_xticklabels() + ax.get_yticklabels():
         label.set_fontweight('bold')
         label.set_fontsize('large')
-    ax.set_title('Probability of GMSL exceeding projection in 2100', y=1.35)
+    ax.set_title(f'Probability of global mean SLR exceeding projection in 2100', y=1.35)
     return fig, ax
 
 
@@ -758,9 +753,9 @@ def fig_proj_2100_map(proj_col_str='rsl_high', gauges_cities_megacities='megacit
     else:
         extend = None
     if 'rsl_' in proj_col_str:
-        label = f'{proj_col_str.split("_")[-1].title()}-end RSL in 2100, m'
+        label = f'{proj_col_str.split("_")[-1].title()}-end relative SLR in 2100, m'
     else:
-        label = f'{proj_col_str.split("_")[-1].title()}-end RSL without VLM in 2100, m'
+        label = f'{proj_col_str.split("_")[-1].title()}-end geocentric SLR in 2100, m'
     cbar = plt.colorbar(orientation='horizontal', extend=extend, pad=0.05, shrink=0.7, label=label)
     cbar.ax.set_xticks(np.arange(1, 3.1, 0.2))
     # If megacities and only one region, annotate with city names
@@ -807,11 +802,11 @@ def fig_proj_2100_megacities():
                                               ('rsl_low', 'Low-end', 'darkgreen', 'x', 0.15),
                                               ('novlm_low', 'Low-end without VLM', 'darkgreen', 'o', -0.15)]:
         # Plot GMSL data
-        gmsl_da = read_proj_ts_da(gmsl_rsl_novlm='gmsl', fusion_high_low_central=col.split('_')[-1],  scenario=None)
+        gmsl_da = read_proj_ts_da(slr_str='gmsl', fusion_high_low_central=col.split('_')[-1], scenario=None)
         gmsl = gmsl_da.sel(years=2100).data
         ax.axvline(gmsl, color=color, alpha=0.5, linestyle='--')
         if col == 'rsl_high':
-            label2 = f'High-end GMSL'
+            label2 = f'High-end global mean SLR'
         else:
             label2 = None
         ax.text(gmsl, proj_df.index.max()+0.3, label2,
@@ -831,17 +826,17 @@ def fig_proj_2100_megacities():
     ax.xaxis.set_major_locator(plticker.MultipleLocator(base=0.5))
     ax.tick_params(labelbottom=True, labeltop=True, labelleft=False, labelright=True,
                    bottom=False, top=False, right=False, left=False)
-    ax.set_xlabel('RSL in 2100, m')
+    ax.set_xlabel(f'{SLR_LABEL_DICT["rsl"]} in 2100, m')
     return fig, ax
 
 
-def fig_country_stats(rsl_novlm='rsl', min_count=4):
+def fig_country_stats(slr_str='rsl', min_count=4):
     """
     Plot country-level median, min, and max (across gauges) of high-end, low-end, and central RSL projections for 2100.
 
     Parameters
     ----------
-    rsl_novlm : str
+    slr_str : str
         RSL ('rsl'; default) or RSL without the background component ('novlm').
     min_count : int
         Minimum number of tide gauges required to plot. Default is 4.
@@ -856,7 +851,7 @@ def fig_country_stats(rsl_novlm='rsl', min_count=4):
     ax2 = ax1.twinx()  # twin axis, to split legend
     ax3 = ax1.twinx()  # twin axis, to split legend
     # Get country-level stats
-    country_stats_df = get_country_stats_df(rsl_novlm=rsl_novlm, min_count=min_count)
+    country_stats_df = get_country_stats_df(slr_str=slr_str, min_count=min_count)
     # Plot data
     for high_low_central, offset, color, ax in [('high', 0.2, 'darkred', ax1), ('central', 0, 'lightblue', ax2),
                                                 ('low', -0.2, 'darkgreen', ax3)]:
@@ -866,11 +861,11 @@ def fig_country_stats(rsl_novlm='rsl', min_count=4):
         ax.hlines(y, country_stats_df[f'{high_low_central}_min'], country_stats_df[f'{high_low_central}_max'],
                   color=color, alpha=0.7, label='Range')
         # GMSL data
-        gmsl_da = read_proj_ts_da(gmsl_rsl_novlm='gmsl', fusion_high_low_central=high_low_central,  scenario=None)
+        gmsl_da = read_proj_ts_da(slr_str='gmsl', fusion_high_low_central=high_low_central, scenario=None)
         gmsl = gmsl_da.sel(years=2100).data
         ax.axvline(gmsl, color=color, alpha=0.5, linestyle='--')
         if high_low_central == 'high':
-            label = f'High-end GMSL'
+            label = f'High-end global mean SLR'
         else:
             label = None
         ax.text(gmsl+0.05, country_stats_df.index.min()-0.3, label,
@@ -891,10 +886,7 @@ def fig_country_stats(rsl_novlm='rsl', min_count=4):
         if high_low_central == 'high':
             ax.tick_params(labelbottom=True, labeltop=True, labelleft=False, labelright=True,
                            bottom=False, top=False, right=False, left=False)
-            if rsl_novlm == 'rsl':
-                ax.set_xlabel('RSL in 2100, m')
-            elif rsl_novlm == 'novlm':
-                ax.set_xlabel('RSL without VLM component in 2100, m')
+            ax.set_xlabel(f'{SLR_LABEL_DICT[slr_str]} in 2100, m')
         else:
             ax.axis('off')
     return fig, (ax1, ax2)
@@ -916,7 +908,7 @@ def fig_rsl_vs_vlm():
     # Calculate VLM contribution to high-end projection as difference between total RSL and no-VLM RSL
     proj_df['vlm_high'] = proj_df['rsl_high'] - proj_df['novlm_high']
     # Identify countries with largest RSL ranges
-    stats_df = get_country_stats_df(rsl_novlm='rsl', min_count=4)
+    stats_df = get_country_stats_df(slr_str='rsl', min_count=4)
     stats_df['high_range'] = stats_df['high_max'] - stats_df['high_min']
     stats_df = stats_df.sort_values('high_range', ascending=False)
     countries = stats_df['gauge_country'][0:6]
@@ -934,7 +926,7 @@ def fig_rsl_vs_vlm():
         ax.xaxis.set_major_locator(plticker.MultipleLocator(base=0.5))  # ticks at interval of 0.5 m
         ax.yaxis.set_major_locator(plticker.MultipleLocator(base=0.5))
         if i in (0, 3):
-            ax.set_ylabel('High-end RSL in 2100, m')  # y label
+            ax.set_ylabel('High-end relative SLR in 2100, m')  # y label
         if i in (3, 4, 5):
             ax.set_xlabel('VLM component, m')  # x label
     return fig, axs
@@ -952,7 +944,7 @@ def fig_rsl_vs_vlm():
 #     # Create figure and axes
 #     fig, ax = plt.subplots(1, 1, figsize=(5, 3.5), tight_layout=True)
 #     # Get high-end projection data
-#     proj_df = get_info_high_low_exceed_df(rsl_novlm='rsl')
+#     proj_df = get_info_high_low_exceed_df(slr_str='rsl')
 #     # Loop over scenarios and plot
 #     for scenario, binrange, color, hatch in [('ssp585', (-0.05, 5.25), 'darkred', '/'),
 #                                              ('ssp126', (0, 5.2), 'green', None)]:
