@@ -43,6 +43,7 @@ SCENARIO_LABEL_DICT = {'ssp126': 'SSP1-2.6', 'ssp585': 'SSP5-8.5', 'ssp245': 'SS
 SLR_LABEL_DICT = {'gmsl': 'Global mean SLR', 'rsl': 'Relative SLR', 'novlm': 'Geocentric SLR'}
 AR6_DIR = Path.cwd() / 'data_in' / 'ar6'  # directory containing AR6 input data
 PSMSL_DIR = Path.cwd() / 'data_in' / 'psmsl'  # directory containing PSMSL catalogue file
+WUP18_DIR = Path.cwd() / 'data_in' / 'wup18'  # directory containing World Urbanisation Prospects 2018 data
 DATA_DIR = Path.cwd() / 'data_d25a'  # directory containing projections produced by data_d25a.ipynb
 FIG_DIR = Path.cwd() / 'figs_d25a'  # directory in which to save figures
 F_NUM = itertools.count(1)  # main figures counter
@@ -50,13 +51,13 @@ S_NUM = itertools.count(1)  # supplementary figures counter
 O_NUM = itertools.count(1)  # other figures counter
 
 
+# Functions used by data_d25a.ipynb & figs_d25a.ipynb
+
 def get_watermark():
     """Return watermark string, including versions of dependencies."""
     packages = 'matplotlib,numpy,pandas,seaborn,xarray'
     return watermark(machine=True, conda=True, python=True, packages=packages)
 
-
-# Functions used by data_d25a.ipynb
 
 @cache
 def get_gauge_info(gauge='TANJONG_PAGAR'):
@@ -107,6 +108,49 @@ def get_gauge_info(gauge='TANJONG_PAGAR'):
     return gauge_info
 
 
+# Functions used by data_d25a.ipynb
+
+@cache
+def get_coastal_loc_df():
+    """
+    Return AR6 projections locations with (i) data AND (ii) a gauge or a coastal city.
+
+    Returns
+    -------
+    coastal_locations_df : DataFrame
+        Dataframe of locations (AR6 projections location code, latitude, longitude)
+    """
+    # Read example AR6 projections file
+    in_dir = AR6_DIR / 'ar6-regional-distributions' / 'regional' / 'dist_workflows' / 'wf_1e' / 'ssp585'
+    in_fn = in_dir / 'total-workflow.nc'
+    ar6_ds = xr.open_dataset(in_fn)
+    # Drop locations with missing data (including gauge locations with missing data)
+    ar6_ds = ar6_ds.dropna(dim='locations', how='any')
+    # Gauge locations with data
+    gauge_ds = ar6_ds.sel(locations=slice(0, int(1e8)))
+    gauge_loc_df = pd.DataFrame()
+    gauge_loc_df['lat'] = gauge_ds['lat']
+    gauge_loc_df['lon'] = gauge_ds['lon']
+    gauge_loc_df['loc'] = gauge_ds['locations']
+    gauge_loc_df = gauge_loc_df.set_index('loc').sort_index()  # set index and sort
+    # City locations in world urbanisation prospects data
+    in_fn = WUP18_DIR / 'WUP2018-F12-Cities_Over_300K.xls'
+    cities_df = pd.read_excel(in_fn, header=16, usecols='A,C,E,G,H', index_col=None)
+    cities_loc_df = pd.DataFrame()
+    cities_loc_df['lat'] = cities_df['Latitude'].round().astype(int)  # round lat and lon
+    cities_loc_df['lon'] = cities_df['Longitude'].round().astype(int)
+    cities_loc_df['loc'] = ('10' + (90 - cities_loc_df['lat']).astype(str).str.zfill(3) + '0' +  # form 10MMM0NNN0
+                            (cities_loc_df['lon'] % 360).astype(str).str.zfill(3) + '0').astype(int)
+    cities_loc_df = cities_loc_df.drop_duplicates()  # drop duplications
+    cities_loc_df = cities_loc_df.set_index('loc').sort_index()  # set index and sort
+    # Intersection between city locations and AR6 projections data
+    overlap = cities_loc_df.index.intersection(ar6_ds['locations'])
+    cities_loc_df = cities_loc_df.loc[overlap]
+    # Combine gauge and city locations into a single DataFrame
+    coastal_loc_df = pd.concat([gauge_loc_df, cities_loc_df], axis=0)
+    return coastal_loc_df
+
+
 @cache
 def get_sl_qfs(workflow='fusion_1e+2e', slr_str='rsl', scenario='ssp585'):
     """
@@ -148,11 +192,13 @@ def get_sl_qfs(workflow='fusion_1e+2e', slr_str='rsl', scenario='ssp585'):
             raise ValueError(f"slr_str should be 'gmsl', 'rsl', or 'novlm', not '{slr_str}'.")
         in_fn = in_dir / 'total-workflow.nc'
         qfs_da = xr.open_dataset(in_fn)['sea_level_change']
+        qfs_da = qfs_da.load(decode_cf=True)
         # Include only 21st century
         qfs_da = qfs_da.sel(years=slice(2000, 2100))
-        # Exclude grid locations
+        # Keep only coastal locations of interest
         if slr_str != 'gmsl':
-            qfs_da = qfs_da.sel(locations=slice(0, int(1e8)))
+            coastal_loc_df = get_coastal_loc_df()
+            qfs_da = qfs_da.sel(locations=coastal_loc_df.index)
         # Change units from mm to m
         qfs_da = qfs_da / 1000.
         qfs_da.attrs['units'] = 'm'
