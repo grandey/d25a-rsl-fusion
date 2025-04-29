@@ -309,7 +309,7 @@ def write_time_series_da(slr_str='rsl', proj_str='fusion-ssp585'):
     # Case 1: full probabilistic fusion projection.
     if 'fusion' in proj_str:
         scenario = proj_str.split('-')[1]
-        proj_ts_da = get_sl_qfs(workflow='fusion_1e+2e', slr_str=slr_str, scenario=scenario).copy().squeeze()
+        time_series_da = get_sl_qfs(workflow='fusion_1e+2e', slr_str=slr_str, scenario=scenario).copy().squeeze()
     # Case 2: low, central, high, or high-end projection
     else:
         if proj_str == 'low':
@@ -323,7 +323,7 @@ def write_time_series_da(slr_str='rsl', proj_str='fusion-ssp585'):
         else:
             raise ValueError(f'Invalid proj_str: {proj_str}.')
         qfs_da = get_sl_qfs(workflow=workflow, slr_str=slr_str, scenario=scenario)
-        proj_ts_da = qfs_da.sel(quantiles=p).squeeze()
+        time_series_da = qfs_da.sel(quantiles=p).squeeze()
     # Write to NetCDF file
     out_dir = DATA_DIR / 'time_series'
     if not out_dir.exists():
@@ -332,9 +332,9 @@ def write_time_series_da(slr_str='rsl', proj_str='fusion-ssp585'):
     if slr_str == 'gmsl':
         print(f'Writing time_series/{out_fn.name}')
     else:
-        print(f'Writing time_series/{out_fn.name} ({len(proj_ts_da.locations)} locations)')
-    proj_ts_da.to_netcdf(out_fn)
-    return out_fn
+        print(f'Writing time_series/{out_fn.name} ({len(time_series_da.locations)} locations)')
+    time_series_da.to_netcdf(out_fn)
+    return time_series_da
 
 
 @cache
@@ -353,7 +353,7 @@ def read_time_series_da(slr_str='rsl', proj_str='fusion-ssp585'):
 
     Returns
     -------
-    proj_ts_da : xarray DataArray
+    time_series_da : xarray DataArray
         Sea-level projection time-series DataArray.
     """
     # Input file
@@ -361,11 +361,10 @@ def read_time_series_da(slr_str='rsl', proj_str='fusion-ssp585'):
     in_fn = in_dir / f'{slr_str}_{proj_str}_d25a.nc'
     # If input file does not yet exist, create it
     if not in_fn.exists():
-        _ = write_proj_ts_da(slr_str=slr_str, proj_str=proj_str)
+        _ = write_time_series_da(slr_str=slr_str, proj_str=proj_str)
     # Read data
-    proj_ts_da = xr.open_dataset(in_fn)['sea_level_change']
-    return proj_ts_da
-
+    time_series_da = xr.open_dataset(in_fn)['sea_level_change']
+    return time_series_da
 
 
 def write_locations_info_df():
