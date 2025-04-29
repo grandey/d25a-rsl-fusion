@@ -162,8 +162,8 @@ def get_sl_qfs(workflow='fusion_1e+2e', slr_str='rsl', scenario='ssp585'):
         AR6 workflow (e.g. 'wf_1e'), p-box bound ('lower', 'upper', 'outer'), effective distribution (e.g.
         'effective_0.5'), mean (e.g. 'mean_1e+2e'), or fusion (e.g. 'fusion_1e+2e', default).
     slr_str : str
-        Return global mean sea level ('gmsl'), relative sea level (RSL) at gauge locations ('rsl'; default), or
-        RSL without the background component ('novlm').
+        Return global mean sea level ('gmsl'), relative sea level ('rsl'; default), or
+        geocentric sea level without the background component ('novlm').
     scenario : str
         Options are 'ssp585' (default), 'ssp126', or 'ssp245'.
 
@@ -290,6 +290,56 @@ def get_fusion_weights():
     # Rename
     w_da = w_da.rename('weights')
     return w_da
+
+
+@cache
+def write_proj_ts_da(slr_str='rsl', proj_str='fusion-ssp585'):
+    """
+    Get and write sea-level projection time-series DataArray to NetCDF.
+
+    Parameters
+    ----------
+    slr_str : str
+        Return global mean sea level ('gmsl'), relative sea level ('rsl'; default), or
+        geocentric sea level without the background component ('novlm').
+    proj_str : str
+        Probabilistic fusion under a specified scenario ('fusion-ssp585', 'fusion-ssp126'), low, central, high, or
+        high-end projection.
+
+    Returns
+    -------
+    out_fn : Path
+        Name of written file.
+    """
+    # Case 1: full probabilistic fusion projection.
+    if 'fusion' in proj_str:
+        scenario = proj_str.split('-')[1]
+        proj_ts_da = get_sl_qfs(workflow='fusion_1e+2e', slr_str=slr_str, scenario=scenario).copy().squeeze()
+    # Case 2: low, central, high, or high-end projection
+    else:
+        if proj_str == 'low':
+            workflow, scenario, p = 'fusion_1e+2e', 'ssp126', 0.17
+        elif proj_str == 'central':
+            workflow, scenario, p = 'mean_1e+2e', 'ssp245', 0.5
+        elif proj_str == 'high':
+            workflow, scenario, p = 'fusion_1e+2e', 'ssp585', 0.83
+        elif proj_str == 'high-end':
+            workflow, scenario, p = 'fusion_1e+2e', 'ssp585', 0.95
+        else:
+            raise ValueError(f'Invalid proj_str: {proj_str}.')
+        qfs_da = get_sl_qfs(workflow=workflow, slr_str=slr_str, scenario=scenario)
+        proj_ts_da = qfs_da.sel(quantiles=p).squeeze()
+    # Write to file
+    out_dir = DATA_DIR / 'time_series'
+    if not out_dir.exists():
+        out_dir.mkdir()
+    out_fn = out_dir / f'{slr_str}_{proj_str}_d25a.nc'
+    if slr_str == 'gmsl':
+        print(f'Writing time_series/{out_fn.name}')
+    else:
+        print(f'Writing time_series/{out_fn.name} ({len(proj_ts_da.locations)} locations)')
+    proj_ts_da.to_netcdf(out_fn)
+    return out_fn
 
 
 # Functions used by figs_d25a.ipynb
