@@ -51,8 +51,6 @@ S_NUM = itertools.count(1)  # supplementary figures counter
 O_NUM = itertools.count(1)  # other figures counter
 
 
-# Functions used by data_d25a.ipynb & figs_d25a.ipynb
-
 def get_watermark():
     """Return watermark string, including versions of dependencies."""
     packages = 'matplotlib,numpy,pandas,seaborn,xarray'
@@ -107,8 +105,6 @@ def get_gauge_info(gauge='TANJONG_PAGAR'):
                 pass
     return gauge_info
 
-
-# Functions used by data_d25a.ipynb
 
 @cache
 def get_coastal_loc_df():
@@ -292,8 +288,7 @@ def get_fusion_weights():
     return w_da
 
 
-@cache
-def write_proj_ts_da(slr_str='rsl', proj_str='fusion-ssp585'):
+def write_time_series_da(slr_str='rsl', proj_str='fusion-ssp585'):
     """
     Get and write sea-level projection time-series DataArray to NetCDF.
 
@@ -329,7 +324,7 @@ def write_proj_ts_da(slr_str='rsl', proj_str='fusion-ssp585'):
             raise ValueError(f'Invalid proj_str: {proj_str}.')
         qfs_da = get_sl_qfs(workflow=workflow, slr_str=slr_str, scenario=scenario)
         proj_ts_da = qfs_da.sel(quantiles=p).squeeze()
-    # Write to file
+    # Write to NetCDF file
     out_dir = DATA_DIR / 'time_series'
     if not out_dir.exists():
         out_dir.mkdir()
@@ -343,6 +338,36 @@ def write_proj_ts_da(slr_str='rsl', proj_str='fusion-ssp585'):
 
 
 @cache
+def read_time_series_da(slr_str='rsl', proj_str='fusion-ssp585'):
+    """
+    Read sea-level projection time-series DataArray written by write_time_series_da().
+
+    Parameters
+    ----------
+    slr_str : str
+        Global mean sea level ('gmsl'), relative sea level ('rsl'; default), or
+        geocentric sea level without the background component ('novlm').
+    proj_str : str
+        Probabilistic fusion under a specified scenario ('fusion-ssp585', 'fusion-ssp126'), low, central, high, or
+        high-end projection.
+
+    Returns
+    -------
+    proj_ts_da : xarray DataArray
+        Sea-level projection time-series DataArray.
+    """
+    # Input file
+    in_dir = DATA_DIR / 'time_series'
+    in_fn = in_dir / f'{slr_str}_{proj_str}_d25a.nc'
+    # If input file does not yet exist, create it
+    if not in_fn.exists():
+        _ = write_proj_ts_da(slr_str=slr_str, proj_str=proj_str)
+    # Read data
+    proj_ts_da = xr.open_dataset(in_fn)['sea_level_change']
+    return proj_ts_da
+
+
+
 def write_locations_info_df():
     """
     Get and write locations information DataFrame to CSV, including gauge information for gauges.
@@ -380,38 +405,36 @@ def write_locations_info_df():
     return out_fn
 
 
-# Functions used by figs_d25a.ipynb
-
-@cache
-def read_proj_ts_da(slr_str='gmsl', fusion_high_low_central='fusion', scenario='ssp585'):
-    """
-    Read projection time-series DataArray produced by data_d25a.ipynb.
-
-    Parameters
-    ----------
-    slr_str : str
-        GMSL ('gmsl'; default), RSL at gauges ('rsl'), or RSL without the background component ('novlm').
-    fusion_high_low_central : str
-        Choose whether to read full fusion ('fusion'), high-end ('high'), low-end ('low'), or central ('central')
-        projection.
-    scenario : str or None
-        If reading fusion, options are 'ssp585' or 'ssp126'. Ignored for high-end, low-end, and central.
-
-    Returns
-    -------
-    proj_ts_da : xarray DataArray
-        DataArray of sea-level projection time series.
-    """
-    # Input directory
-    in_dir = DATA_DIR / 'time_series'
-    # File to read
-    if fusion_high_low_central == 'fusion':
-        in_fn = in_dir / f'{slr_str}_fusion_{scenario}_d25a.nc'
-    elif fusion_high_low_central in ['high', 'low', 'central']:
-        in_fn = in_dir / f'{slr_str}_{fusion_high_low_central}_d25a.nc'
-    # Read data
-    proj_ts_da = xr.open_dataset(in_fn)['sea_level_change']
-    return proj_ts_da
+# @cache
+# def read_proj_ts_da(slr_str='gmsl', fusion_high_low_central='fusion', scenario='ssp585'):
+#     """
+#     Read projection time-series DataArray produced by data_d25a.ipynb.
+#
+#     Parameters
+#     ----------
+#     slr_str : str
+#         GMSL ('gmsl'; default), RSL at gauges ('rsl'), or RSL without the background component ('novlm').
+#     fusion_high_low_central : str
+#         Choose whether to read full fusion ('fusion'), high-end ('high'), low-end ('low'), or central ('central')
+#         projection.
+#     scenario : str or None
+#         If reading fusion, options are 'ssp585' or 'ssp126'. Ignored for high-end, low-end, and central.
+#
+#     Returns
+#     -------
+#     proj_ts_da : xarray DataArray
+#         DataArray of sea-level projection time series.
+#     """
+#     # Input directory
+#     in_dir = DATA_DIR / 'time_series'
+#     # File to read
+#     if fusion_high_low_central == 'fusion':
+#         in_fn = in_dir / f'{slr_str}_fusion_{scenario}_d25a.nc'
+#     elif fusion_high_low_central in ['high', 'low', 'central']:
+#         in_fn = in_dir / f'{slr_str}_{fusion_high_low_central}_d25a.nc'
+#     # Read data
+#     proj_ts_da = xr.open_dataset(in_fn)['sea_level_change']
+#     return proj_ts_da
 
 
 @cache
