@@ -309,7 +309,7 @@ def write_proj_ts_da(slr_str='rsl', proj_str='fusion-ssp585'):
     Returns
     -------
     out_fn : Path
-        Name of written file.
+        Name of written NetCDF file.
     """
     # Case 1: full probabilistic fusion projection.
     if 'fusion' in proj_str:
@@ -339,6 +339,44 @@ def write_proj_ts_da(slr_str='rsl', proj_str='fusion-ssp585'):
     else:
         print(f'Writing time_series/{out_fn.name} ({len(proj_ts_da.locations)} locations)')
     proj_ts_da.to_netcdf(out_fn)
+    return out_fn
+
+
+@cache
+def write_locations_info_df():
+    """
+    Get and write locations information DataFrame to CSV, including gauge information for gauges.
+
+    Returns
+    -------
+    out_fn : Path
+        Name of written CSV file.
+    """
+    # Create DataFrame to hold information about locations
+    locations_info_df = pd.DataFrame(columns=['location', 'lat', 'lon', 'gauge_id', 'gauge_name', 'gauge_country'])
+    # Loop over locations for which projections are available
+    qfs_da = get_sl_qfs(workflow='fusion_1e+2e', slr_str='rsl', scenario='ssp585')
+    for location in qfs_da.locations.data:
+        # Get information about location, assuming it is a gauge location for now
+        gauge_info = get_gauge_info(location)
+        # Map to location info columns
+        lat = gauge_info['lat']
+        lon = gauge_info['lon']
+        if location < 10000:  # remaining columns only relevant to gauge locations (which have IDs < 10000)
+            gauge_id = gauge_info['gauge_id']
+            gauge_name = gauge_info['gauge_name']
+            gauge_country = gauge_info['country']
+        else:
+            gauge_id, gauge_name, gauge_country = None, None, None
+        # Append to DataFrame
+        locations_info_df.loc[len(locations_info_df)] = [location, lat, lon, gauge_id, gauge_name, gauge_country]
+    # Index by location
+    locations_info_df = locations_info_df.set_index('location')
+    # Save to CSV
+    out_dir = DATA_DIR / 'time_series'
+    out_fn = out_dir / 'locations_info_d25a.csv'
+    print(f'Writing time_series/{out_fn.name} ({len(locations_info_df)} locations)')
+    locations_info_df.to_csv(out_fn)
     return out_fn
 
 
