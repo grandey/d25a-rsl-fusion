@@ -172,7 +172,7 @@ def get_sl_qfs(workflow='fusion_1e+2e', slr_str='rsl', scenario='ssp585'):
     -----
     1. This function is based on get_sl_qf() in the d23a-fusion repository.
     2. In contrast to d23a.get_sl_qf(), which returns data for a specific year and location,
-       get_sl_qfs() returns data for multiple years during the 21st century and gauge locations.
+       get_sl_qfs() returns data for multiple years during the 21st century and multiple locations.
     """
     # Case 1: single workflow, corresponding to one of the alternative projections
     if workflow in ['wf_1e', 'wf_1f', 'wf_2e', 'wf_2f', 'wf_3e', 'wf_3f', 'wf_4']:
@@ -353,14 +353,16 @@ def read_time_series_da(slr_str='rsl', proj_str='fusion-ssp585'):
 
     Returns
     -------
-    time_series_da : xarray DataArray
+    time_series_da : DataArray
         Sea-level projection time-series DataArray.
     """
     # Input file
     in_dir = DATA_DIR / 'time_series'
     in_fn = in_dir / f'{slr_str}_{proj_str}_d25a.nc'
+    print(f'Reading time_series/{in_fn.name}')
     # If input file does not yet exist, create it
     if not in_fn.exists():
+        print(f'File {in_fn.name} not found; creating it now')
         _ = write_time_series_da(slr_str=slr_str, proj_str=proj_str)
     # Read data
     time_series_da = xr.open_dataset(in_fn)['sea_level_change']
@@ -402,6 +404,29 @@ def write_locations_info_df():
     print(f'Writing time_series/{out_fn.name} ({len(locations_info_df)} locations)')
     locations_info_df.to_csv(out_fn)
     return out_fn
+
+
+@cache
+def read_locations_info_df():
+    """
+    Read locations information DataFrame written by write_locations_info_df().
+
+    Returns
+    -------
+    locations_info_df : DataFrame
+        Locations information DataFrame (location, lat, lon, gauge_id, gauge_name, gauge_country)
+    """
+    # Input file
+    in_dir = DATA_DIR / 'time_series'
+    in_fn = in_dir / 'locations_info_d25a.csv'
+    print(f'Reading time_series/{in_fn.name}')
+    # If input file does not yet exist, create it
+    if not in_fn.exists():
+        print(f'File {in_fn.name} not found; creating it now')
+        _ = write_locations_info_df()
+    # Read data
+    locations_info_df = pd.read_csv(in_fn, index_col='location', dtype={'location': 'Int64', 'gauge_id': 'Int64'})
+    return locations_info_df
 
 
 # @cache
