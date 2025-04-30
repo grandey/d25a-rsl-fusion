@@ -115,6 +115,10 @@ def get_coastal_loc_df():
     -------
     coastal_locations_df : DataFrame
         Dataframe of locations (AR6 projections location code, latitude, longitude)
+
+    Note
+    ----
+    This function provides input to get_sl_qfs().
     """
     # Read example AR6 projections file
     in_dir = AR6_DIR / 'ar6-regional-distributions' / 'regional' / 'dist_workflows' / 'wf_1e' / 'ssp585'
@@ -337,7 +341,6 @@ def write_time_series_da(slr_str='rsl', proj_str='fusion-ssp585'):
     return time_series_da
 
 
-@cache
 def read_time_series_da(slr_str='rsl', proj_str='fusion-ssp585'):
     """
     Read sea-level projection time-series DataArray written by write_time_series_da().
@@ -377,6 +380,11 @@ def write_locations_info_df():
     -------
     out_fn : Path
         Name of written CSV file.
+
+    Notes
+    -----
+    In contrast to get_coastal_loc_df(), which provides input to get_sl_qfs(), this function provides info about
+    locations returned by qfs_da().
     """
     # Create DataFrame to hold information about locations
     locations_info_df = pd.DataFrame(columns=['location', 'lat', 'lon', 'gauge_id', 'gauge_name', 'gauge_country'])
@@ -406,7 +414,6 @@ def write_locations_info_df():
     return out_fn
 
 
-@cache
 def read_locations_info_df():
     """
     Read locations information DataFrame written by write_locations_info_df().
@@ -427,6 +434,107 @@ def read_locations_info_df():
     # Read data
     locations_info_df = pd.read_csv(in_fn, index_col='location', dtype={'location': 'Int64', 'gauge_id': 'Int64'})
     return locations_info_df
+
+
+def write_year_2100_df(slr_str='rsl', gauges_str='gauges', cities_str=None):
+    """
+    Get and write year-2100 low, central, high, and high-end projections for gauge/grid locations or cities.
+
+    Parameters
+    ----------
+    slr_str : str
+        Relative sea level ('rsl'; default) or geocentric sea level without the background component ('novlm').
+    gauges_str : str
+        Use projections at gauges ('gauges'; default) or grid locations ('grid').
+    cities_str : None or str
+        Arrange projections by gauge/grid location (None; default), by city ('cities'), or by megacity ('megacities').
+
+    Returns
+    -------
+    out_fn : Path
+        Name of written CSV file.
+    """
+    # Read locations information DataFrame
+    year_2100_df = read_locations_info_df().copy()
+    # Select gauges or grid locations
+    if gauges_str == 'gauges':
+        year_2100_df = year_2100_df.loc[year_2100_df['gauge_id'].notnull()]
+    elif gauges_str == 'grid':
+        year_2100_df = year_2100_df.loc[year_2100_df['gauge_id'].isnull()]
+    else:
+        raise ValueError(f'Invalid gauges_str: {gauges_str}')
+    # Get low, central, high, and high-end projections for 2100, rounded to the nearest cm
+    for proj_str in ['low', 'central', 'high', 'high-end']:
+        time_series_da = read_time_series_da(slr_str=slr_str, proj_str=proj_str)
+        for location in year_2100_df.index:  # loop over gauges and save year-2100 projection to DataFrame
+            year_2100_df.loc[location, proj_str] = time_series_da.sel(locations=location, years=2100).round(2).data
+    # If cities_str is specified, arrange by city
+    if cities_str is not None:
+        if cities_str not in ('cities', 'megacities'):
+            raise ValueError(f'Invalid cities_str: {cities_str}')
+        # Read World Urbanisation Prospects 2018 data
+        in_fn = WUP18_DIR / 'WUP2018-F12-Cities_Over_300K.xls'
+        cities_df = pd.read_excel(in_fn, header=16, usecols='A,C,E,G,H,X', index_col=None)
+        # Rename and reorder columns
+        cities_df = cities_df.rename(columns={'Index': 'city_index', 'Country or area': 'city_country',
+                                              'Urban Agglomeration': 'city_name', 'Latitude': 'city_lat',
+                                              'Longitude': 'city_lon', 2025: 'population_2025_1000s'})
+        cities_df = cities_df.set_index('city_index')
+        cities_df = cities_df[['city_name', 'city_country', 'city_lat', 'city_lon', 'population_2025_1000s']]
+        # If megacities, then only include locations with the minimum population of 10 million
+        if cities_str == 'megacities':
+            cities_df = cities_df.loc[cities_df['population_2025_1000s'] >= 10000]
+        # Loop over these cities
+        for index, row_ser in cities_df.iterrows():
+            # Get data for nearby gauge / grid location
+            lat0 = row_ser['city_lat']  # latitude of city
+            lon0 = row_ser['city_lon']  # longitude of city
+            # If projections are at gauges, calculate great-circle distance between city and locations
+            if gauges_str == 'gauges':
+                temp_df = year_2100_df.copy()  # copy projections data (from above)
+                temp_df['gauge_distance_km'] = 6378 * np.arccos(
+                    np.sin(np.radians(lat0)) * np.sin(np.radians(temp_df['lat'])) +
+                    np.cos(np.radians(lat0)) * np.cos(np.radians(temp_df['lat'])) *
+                    np.cos(np.radians(temp_df['lon'] - lon0)))
+                temp_df = temp_df.sort_values(by=['gauge_distance_km']).reset_index()  # sort by distance
+                # Save nearest gauge location data to DataFrame if distance <= 100 km
+                if temp_df.loc[0, 'gauge_distance_km'] < 100.5:
+                    for col in ['location', 'gauge_id', 'gauge_name', 'gauge_distance_km', 'lat', 'lon',
+                                'low', 'central', 'high', 'high-end']:
+                        cities_df.loc[index, col] = temp_df.loc[0, col]
+            # If projections are at grid locations, save relevant grid location data to DataFrame
+            else:
+                lat0 = int(round(lat0))
+                lon0 = int(round(lon0))
+                temp_df = year_2100_df[(year_2100_df['lat'] == lat0) & (year_2100_df['lon'] == lon0)]
+                temp_df = temp_df.reset_index()
+                if not temp_df.empty:
+                    for col in ['location', 'lat', 'lon', 'low', 'central', 'high', 'high-end']:
+                        cities_df.loc[index, col] = temp_df.loc[0, col]
+        # Keep only cities with projection data
+        n_tot = len(cities_df)
+        cities_df = cities_df.dropna(how='any')
+        print(f'{len(cities_df)} out of {n_tot} {cities_str} have a {gauges_str} {slr_str} projection')
+        # Round data
+        for col in ['city_lat', 'city_lon']:  # round to 2 d.p.
+            cities_df[col] = cities_df[col].round(2)
+        for col in ['population_2025_1000s', 'location', 'gauge_id', 'gauge_distance_km']:  # round to nearest integer
+            try:
+                cities_df[col] = cities_df[col].round(0).astype('Int64')
+            except KeyError:
+                pass
+        # cities_df replaces year_2100_df
+        year_2100_df = cities_df.copy()
+    # Save to CSV
+    out_dir = DATA_DIR / 'year_2100'
+    if cities_str:
+        out_fn = out_dir / f'{slr_str}_{gauges_str}_{cities_str}_2100_d25a.csv'
+    else:
+        out_fn = out_dir / f'{slr_str}_{gauges_str}_2100_d25a.csv'
+    print(f'Writing year_2100/{out_fn.name} ({len(year_2100_df)} locations)')
+    year_2100_df.to_csv(out_fn)
+    return out_fn
+
 
 
 # @cache
