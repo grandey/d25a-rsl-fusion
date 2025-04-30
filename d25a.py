@@ -527,6 +527,8 @@ def write_year_2100_df(slr_str='rsl', gauges_str='gauges', cities_str=None):
         year_2100_df = cities_df.copy()
     # Save to CSV
     out_dir = DATA_DIR / 'year_2100'
+    if not out_dir.exists():
+        out_dir.mkdir()
     if cities_str:
         out_fn = out_dir / f'{slr_str}_{gauges_str}_{cities_str}_2100_d25a.csv'
     else:
@@ -536,67 +538,38 @@ def write_year_2100_df(slr_str='rsl', gauges_str='gauges', cities_str=None):
     return out_fn
 
 
-
-# @cache
-# def read_proj_ts_da(slr_str='gmsl', fusion_high_low_central='fusion', scenario='ssp585'):
-#     """
-#     Read projection time-series DataArray produced by data_d25a.ipynb.
-#
-#     Parameters
-#     ----------
-#     slr_str : str
-#         GMSL ('gmsl'; default), RSL at gauges ('rsl'), or RSL without the background component ('novlm').
-#     fusion_high_low_central : str
-#         Choose whether to read full fusion ('fusion'), high-end ('high'), low-end ('low'), or central ('central')
-#         projection.
-#     scenario : str or None
-#         If reading fusion, options are 'ssp585' or 'ssp126'. Ignored for high-end, low-end, and central.
-#
-#     Returns
-#     -------
-#     proj_ts_da : xarray DataArray
-#         DataArray of sea-level projection time series.
-#     """
-#     # Input directory
-#     in_dir = DATA_DIR / 'time_series'
-#     # File to read
-#     if fusion_high_low_central == 'fusion':
-#         in_fn = in_dir / f'{slr_str}_fusion_{scenario}_d25a.nc'
-#     elif fusion_high_low_central in ['high', 'low', 'central']:
-#         in_fn = in_dir / f'{slr_str}_{fusion_high_low_central}_d25a.nc'
-#     # Read data
-#     proj_ts_da = xr.open_dataset(in_fn)['sea_level_change']
-#     return proj_ts_da
-
-
-@cache
-def read_proj_2100_df(gauges_cities_megacities='megacities'):
+def read_year_2100_df(slr_str='rsl', gauges_str='gauges', cities_str=None):
     """
-    Read year-2100 projections DataFrame produced by data_d25a.ipynb.
+    Read year-2100 projections DataFrame written by write_year_2100_df().
 
     Parameters
     ----------
-    gauges_cities_megacities : str
-        Gauges ('gauges'), cities ('cities'), or megacities ('megacities'; default).
+    slr_str : str
+        Relative sea level ('rsl'; default) or geocentric sea level without the background component ('novlm').
+    gauges_str : str
+        Use projections at gauges ('gauges'; default) or grid locations ('grid').
+    cities_str : None or str
+        Arrange projections by gauge/grid location (None; default), by city ('cities'), or by megacity ('megacities').
 
     Returns
     -------
-    proj_2100_df : pandas DataFrame
-        DataFrame containing year-2100 projections and also gauge/city information.
+    year_2100_df : DataFrame
+        Year-2100 projections DataFrame
     """
-    # Input directory
+    # Input file
     in_dir = DATA_DIR / 'year_2100'
-    # File to read
-    in_fn = in_dir / f'{gauges_cities_megacities}_2100_d25a.csv'
-    # Read data
-    proj_2100_df = pd.read_csv(in_fn)
-    # Identify gauges in Asian region of interest, using longitude threshold of 60E
-    proj_2100_df['region'] = 'other'  # region is other by default
-    if gauges_cities_megacities == 'gauges':
-        proj_2100_df.loc[(proj_2100_df['gauge_lon'] > 60), 'region'] = 'asia'
+    if cities_str:
+        in_fn = in_dir / f'{slr_str}_{gauges_str}_{cities_str}_2100_d25a.csv'
     else:
-        proj_2100_df.loc[(proj_2100_df['city_lon'] > 60), 'region'] = 'asia'
-    return proj_2100_df
+        in_fn = in_dir / f'{slr_str}_{gauges_str}_2100_d25a.csv'
+    print(f'Reading year_2100/{in_fn.name}')
+    # If input file does not yet exist, create it
+    if not in_fn.exists():
+        print(f'File {in_fn.name} not found; creating it now')
+        _ = write_year_2100_df(slr_str=slr_str, gauges_str=gauges_str, cities_str=cities_str)
+    # Read data
+    year_2100_df = pd.read_csv(in_fn)
+    return year_2100_df
 
 
 # @cache
