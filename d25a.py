@@ -916,7 +916,7 @@ def fig_year_2100_megacities():
     return fig, ax
 
 
-def fig_country_stats(slr_str='rsl', min_count=4):
+def fig_country_stats(slr_str='rsl', min_count=4, high_end_only=True):
     """
     Plot country-level median, min, and max (across gauges) of high-end, high, central, and low projections for 2100.
 
@@ -926,6 +926,8 @@ def fig_country_stats(slr_str='rsl', min_count=4):
         Relative sea level ('rsl'; default) or geocentric sea level without the background component ('novlm').
     min_count : int
         Minimum number of gauges required for country to be included. Default is 4.
+    high_end_only : bool
+        If True, show only high-end results
 
     Returns
     -------
@@ -933,15 +935,24 @@ def fig_country_stats(slr_str='rsl', min_count=4):
     axs : tuple of Axes
     """
     # Create figure and axes
-    fig, ax1 = plt.subplots(1, 1, figsize=(10, 14), tight_layout=True)
-    ax2 = ax1.twinx()  # twin axis, to split legend
-    ax3 = ax1.twinx()  # twin axis, to split legend
-    ax4 = ax1.twinx()  # twin axis, to split legend
+    if high_end_only:
+        fig, ax1 = plt.subplots(1, 1, figsize=(8, 10), tight_layout=True)
+        axs = (ax1,)
+    else:
+        fig, ax1 = plt.subplots(1, 1, figsize=(10, 14), tight_layout=True)
+        axs = (ax1, ax1.twinx(), ax1.twinx(), ax1.twinx())  # twin axis, to split legend
     # Get country-level stats
     country_stats_df = get_country_stats_df(slr_str=slr_str, min_count=min_count)
     # Plot data
-    for proj_str, offset, color, ax in [('high-end', 0.2, 'darkred', ax1), ('high', 0.05, 'red', ax2),
-                                        ('central', -0.1, 'lightblue', ax3), ('low', -0.25, 'darkgreen', ax4)]:
+    if high_end_only:
+        proj_str_list = ['high-end',]
+        color_list = ['darkred',]
+        offset_list = [0,]
+    else:
+        proj_str_list = ['high-end', 'high', 'central', 'low']
+        color_list = ['darkred', 'red', 'lightblue', 'darkgreen']
+        offset_list = [0.2, 0.05, -0.1, -0.25]
+    for proj_str, color, offset, ax in zip(proj_str_list, color_list, offset_list, axs):
         # Country-level RSL data
         y = country_stats_df.index + offset
         ax.scatter(x=country_stats_df[f'{proj_str}_med'], y=y, color=color, label='Median', s=15)
@@ -970,15 +981,21 @@ def fig_country_stats(slr_str='rsl', min_count=4):
         ax.set_yticks(country_stats_df.index)
         ax.set_yticklabels(country_stats_df['country'])
         ax.set_ylim(country_stats_df.index.min() - 0.5, country_stats_df.index.max() + 0.5)
-        ax.set_xlim(-2, 4)
+        if high_end_only:
+            ax.set_xlim(-0.5, 4)
+        else:
+            ax.set_xlim(-2, 4)
         ax.xaxis.set_major_locator(plticker.MultipleLocator(base=0.5))
         if proj_str == 'high-end':
             ax.tick_params(labelbottom=True, labeltop=True, labelleft=False, labelright=True,
                            bottom=False, top=False, right=False, left=False)
-            ax.set_xlabel(f'{SLR_LABEL_DICT[slr_str]} in 2100, m')
+            if high_end_only:
+                ax.set_xlabel(f'High-end {SLR_LABEL_DICT[slr_str].split()[0].lower()} SLR in 2100, m')
+            else:
+                ax.set_xlabel(f'{SLR_LABEL_DICT[slr_str]} in 2100, m')
         else:
             ax.axis('off')
-    return fig, (ax1, ax2, ax3, ax4)
+    return fig, axs
 
 
 def fig_rsl_vs_vlm():
