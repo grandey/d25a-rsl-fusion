@@ -18,6 +18,7 @@ import matplotlib.ticker as plticker
 import numpy as np
 import pandas as pd
 from pathlib import Path
+import re
 from scipy import stats
 import seaborn as sns
 from watermark import watermark
@@ -49,6 +50,17 @@ FIG_DIR = Path.cwd() / 'figs_d25a'  # directory in which to save figures
 F_NUM = itertools.count(1)  # main figures counter
 S_NUM = itertools.count(1)  # supplementary figures counter
 O_NUM = itertools.count(1)  # other figures counter
+MEGACITIES_LIST = [  # 48 largest coastal cities analysed by Tay et al. (2022)
+        "Abidjan", "Ahmadabad", "Alexandria", "Bangkok", "Barcelona",
+        "Buenos Aires", "Chennai", "Chittagong", "Dalian", "Dar es Salaam",
+        "Dhaka", "Dongguan", "Foshan", "Fukuoka", "Guangzhou",
+        "Hangzhou", "Ho Chi Minh City", "Hong Kong", "Houston", "Istanbul",
+        "Jakarta", "Karachi", "Kolkata", "Lagos", "Lima",
+        "London", "Los Angeles", "Luanda", "Manila", "Miami",
+        "Mumbai", "Nagoya", "Nanjing", "New York", "Osaka",
+        "Philadelphia", "Qingdao", "Rio de Janeiro", "Saint Petersburg", "Seoul",
+        "Shanghai", "Singapore", "Surat", "Suzhou", "Tianjin",
+        "Tokyo", "Washington, D.C.", "Yangon"]
 
 
 def get_watermark():
@@ -481,9 +493,17 @@ def write_year_2100_df(slr_str='rsl', gauges_str='gauges', cities_str=None):
                                               'Longitude': 'city_lon', 2025: 'population_2025_1000s'})
         cities_df = cities_df.set_index('city_index')
         cities_df = cities_df[['city_name', 'city_country', 'city_lat', 'city_lon', 'population_2025_1000s']]
-        # If megacities, then only include locations with the minimum population of 10 million
+        # If megacities, then only include cities identified by Tay et al. (2022)
         if cities_str == 'megacities':
-            cities_df = cities_df.loc[cities_df['population_2025_1000s'] >= 10000]
+            cities_df = cities_df.loc[cities_df['population_2025_1000s'] >= 5000]  # all have population >= 5 million
+            pattern = '|'.join([rf'{re.escape(city)}' for city in MEGACITIES_LIST])
+            cities_df = cities_df.loc[cities_df['city_name'].str.contains(pattern)]  # keep only Tay et al. cities
+            for city_index in cities_df.index:  # add 'city_short' column containing short name of city
+                city_name = cities_df.loc[city_index, 'city_name']
+                for city_short in MEGACITIES_LIST:
+                    if city_short in city_name:
+                        cities_df.loc[city_index, 'city_short'] = city_short
+                        break
         # Loop over these cities
         for index, row_ser in cities_df.iterrows():
             # Get data for nearby gauge / grid location
@@ -572,73 +592,6 @@ def read_year_2100_df(slr_str='rsl', gauges_str='gauges', cities_str=None):
     return year_2100_df
 
 
-# @cache
-# def get_info_high_low_exceed_df(slr_str='rsl', cities=False):
-#     """
-#     Return gauge info, high-end, low-end, and central projection for 2100, and the probabilities of exceeding these.
-#
-#     Parameters
-#     ----------
-#     slr_str : str
-#         RSL ('rsl'; default) or RSL without the background component ('novlm').
-#     cities : bool
-#         If True, return data for large cities. If False (default), return data for all available gauges.
-#
-#     Returns
-#     -------
-#     proj_df : DataFrame
-#         DataFrame containing gauge_id, gauge_name, lat, lon, country, high, low, p_ex_high_ssp585, p_ex_high_ssp126,
-#         p_ex_low_ssp585, p_ex_low_ssp126, p_ex_central_ssp585, p_ex_central_ssp126.
-#     """
-#     # Read gauge info
-#     proj_df = pd.read_csv(DATA_DIR / 'gauge_info_d25a.csv').set_index('gauge_id')
-#     # Identify gauges in Asian region of interest, using longitude threshold
-#     proj_df['region'] = 'other'  # region is other by default
-#     proj_df.loc[(proj_df['lon'] > 60), 'region'] = 'asia'
-#     # Read high-end, low-end, and central projections for the year 2100
-#     for high_low in ['high', 'low', 'central']:
-#         temp_da = read_fusion_high_low(fusion_high_low=high_low, slr_str=slr_str, scenario=None)
-#         temp_ser = temp_da.sel(years=2100).rename({'locations': 'gauge_id'}).to_series().rename(high_low)
-#         proj_df = pd.merge(proj_df, temp_ser, on='gauge_id')
-#     # Probability of exceeding high-end, low-end, and central projections under different scenarios
-#     for high_low in ['high', 'low', 'central']:
-#         for scenario in ['ssp585', 'ssp126']:
-#             # Get and linearly interpolate quantile functions for fusion under specified scenario in 2100
-#             fusion_da = read_fusion_high_low(fusion_high_low='fusion', slr_str=slr_str, scenario=scenario
-#                                              ).sel(years=2100)
-#             fusion_da = fusion_da.interp(quantiles=np.linspace(0, 1, 20001), method='linear')  # interval of 0.005%
-#             # Get high-end, low-end, or central projection
-#             high_low_da = read_fusion_high_low(fusion_high_low=high_low, slr_str=slr_str, scenario=None)
-#             # Find approximate probability of exceeding projection
-#             p_ex_da = (fusion_da > high_low_da).mean(dim='quantiles')
-#             p_ex_da = p_ex_da.round(decimals=4)  # round to nearest 0.01%
-#             p_ex_ser = p_ex_da.sel(years=2100).rename({'locations': 'gauge_id'}).to_series()
-#             p_ex_ser = p_ex_ser.rename(f'p_ex_{high_low}_{scenario}')
-#             proj_df = pd.merge(proj_df, p_ex_ser, on='gauge_id')
-#     # Limit data to large cities?
-#     if cities:
-#         # Read cities info and select subset of columns to use
-#         cities_df = pd.read_csv(DATA_DIR / 'cities_d25a.csv')
-#         cities_df = cities_df[['city_country', 'city_name', 'city_short', 'city_lat', 'city_lon',
-#                                'gauge_id', 'distance']]
-#         # Keep only cities with distance <= 100 km
-#         n_cities = len(cities_df)
-#         cities_df = cities_df.where(cities_df['distance'] <= 100).dropna()
-#         print(f'Of {n_cities} cities, {len(cities_df)} are within 100 km of a tide gauge.')
-#         # Are any tide gauges used more than once? If so, drop the duplicate
-#         duplic_df = cities_df.where(cities_df.duplicated(subset=['gauge_id'])).dropna()
-#         if len(duplic_df) > 0:
-#             for i, row in duplic_df.iterrows():
-#                 print(f'Dropping {row["city_name"]} due to repeated use of {row["gauge_name"]}.')
-#             cities_df = cities_df.drop_duplicates(subset=['gauge_id'])
-#             print(f'{len(cities_df)} cities remain.')
-#         # Find intersection of cities and projections at gauges and concatenate
-#         cities_df = cities_df.set_index('gauge_id')
-#         proj_df = pd.concat([proj_df, cities_df], axis=1, join='inner')
-#     return proj_df
-
-
-@cache
 def get_proj_2100_summary_df(gauges_cities_megacities='megacities'):
     """
     Return DataFrame summarising some of the key results of year-2100 projections across gauges/cities.
