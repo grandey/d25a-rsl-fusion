@@ -592,27 +592,31 @@ def read_year_2100_df(slr_str='rsl', gauges_str='gauges', cities_str=None):
     return year_2100_df
 
 
-def get_proj_2100_summary_df(gauges_cities_megacities='megacities'):
+def get_year_2100_summary_df(slr_str='rsl', gauges_str='gauges', cities_str=None):
     """
-    Return DataFrame summarising some of the key results of year-2100 projections across gauges/cities.
+    Return DataFrame summarising some of the key results of year-2100 projections across locations.
 
     Parameters
     ----------
-    gauges_cities_megacities : str
-        Gauges ('gauges'), cities ('cities'), or megacities ('megacities'; default).
+    slr_str : str
+        Relative sea level ('rsl'; default) or geocentric sea level without the background component ('novlm').
+    gauges_str : str
+        Use projections at gauges ('gauges'; default) or grid locations ('grid').
+    cities_str : None or str
+        Arrange projections by gauge/grid location (None; default), by city ('cities'), or by megacity ('megacities').
 
     Returns
     -------
     summary_df : DataFrame
     """
     # Get year-2100 projections DataFrame
-    proj_2100_df = read_proj_2100_df(gauges_cities_megacities=gauges_cities_megacities)
-    # Keep only rsl and novlm columns
-    proj_2100_df = proj_2100_df[['rsl_low', 'rsl_central', 'rsl_high', 'novlm_low', 'novlm_central', 'novlm_high']]
+    year_2100_df = read_year_2100_df(slr_str=slr_str, gauges_str=gauges_str, cities_str=cities_str)
+    # Keep only low, central, high, and high-end projections columns
+    year_2100_df = year_2100_df[['low', 'central', 'high', 'high-end']]
     # Remove rows with missing data
-    proj_2100_df = proj_2100_df.dropna()
+    year_2100_df = year_2100_df.dropna()
     # Get summary statistics using describe and round to 1 d.p.
-    describe_df = proj_2100_df.describe().round(1)
+    describe_df = year_2100_df.describe().round(1)
     # Use these summary statistics to populate new DataFrame
     summary_df = pd.DataFrame(columns=describe_df.columns)
     for col in summary_df.columns:
@@ -621,53 +625,6 @@ def get_proj_2100_summary_df(gauges_cities_megacities='megacities'):
         summary_df.loc['Range', col] = f'{describe_df.loc["min", col]} to {describe_df.loc["max", col]}'
         summary_df.loc['Count', col] = int(describe_df.loc['count', col])
     return summary_df
-
-
-# @cache
-# def get_cities_table_df():
-#     """
-#     Return table of city name, closest gauge, distance, and low-end, central, and high-end projections.
-#     Also include summary statistics across all cities.
-#
-#     Returns
-#     -------
-#     table_df : DataFrame
-#     """
-#     # Get RSL projections and associated data for cities
-#     rsl_df = get_info_high_low_exceed_df(slr_str='rsl', cities=True).copy()
-#     # Calculate summary statistics
-#     max_ser = rsl_df.max(numeric_only=True)
-#     med_ser = rsl_df.median(numeric_only=True)
-#     min_ser = rsl_df.min(numeric_only=True)
-#     # Combine gauge name & ID in new column
-#     rsl_df['gauge'] = rsl_df['gauge_name'] + ' (' + rsl_df.index.astype(int).astype(str) + ')'
-#     # Add region headers and sort by region and high-end
-#     rsl_df.loc[len(rsl_df)] = {'city_short': '—Asian megacities—', 'region': 'asia'}
-#     rsl_df.loc[len(rsl_df)] = {'city_short': '—Other megacities—', 'region': 'other'}
-#     rsl_df = rsl_df.sort_values(by=['region', 'high'], ascending=[True, False], na_position='first')
-#     # Include summary statistics
-#     rsl_df.loc[len(rsl_df)] = {'city_short': '—Statistics—'}
-#     for ser, stat_str in [(max_ser, 'Maximum'), (med_ser, 'Median'), (min_ser, 'Minimum')]:
-#         ser['city_short'] = stat_str
-#         ser['distance'] = np.nan  # distance stats not required
-#         rsl_df.loc[len(rsl_df)] = ser
-#     # Rename columns
-#     rsl_df = rsl_df.rename(columns={
-#         'city_short': 'City', 'city_name': 'Full name', 'gauge': 'Gauge', 'distance': 'Distance, km',
-#         'low': 'Low-end, m', 'central': 'Central, m', 'high': 'High-end, m'})
-#     for high_low in ['low', 'central', 'high']:
-#         for scenario in ['ssp126', 'ssp585']:
-#             if high_low == 'central':
-#                 new_col_name = f'Central under {SCENARIO_LABEL_DICT[scenario]}'
-#             else:
-#                 new_col_name = f'{high_low.title()}-end under {SCENARIO_LABEL_DICT[scenario]}'
-#             rsl_df = rsl_df.rename(columns={f'p_ex_{high_low}_{scenario}': new_col_name})
-#     # Use short name of city as index
-#     rsl_df = rsl_df.set_index('City')
-#     # Select columns of interest
-#     columns = ['Full name', 'Gauge', 'Distance, km', 'Low-end, m', 'Central, m', 'High-end, m']
-#     table_df = rsl_df[columns]
-#     return table_df
 
 
 @cache
