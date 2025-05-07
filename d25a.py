@@ -635,23 +635,23 @@ def get_country_stats_df(slr_str='rsl', min_count=4):
     Parameters
     ----------
     slr_str : str
-        RSL ('rsl'; default) or RSL without the background component ('novlm').
+        Relative sea level ('rsl'; default) or geocentric sea level without the background component ('novlm').
     min_count : int
-        Minimum number of tide gauges required for country to be included. Default is 4.
+        Minimum number of gauges required for country to be included. Default is 4.
 
     Returns
     -------
     country_stats_df : DataFrame
-        DataFrame containing country, count (number of gauges), low_med, low_min, low_max, central_med, central_min,
-        central_max, high_med, high_min, high_max.
+        DataFrame containing country, count, low_med, low_min, low_max, central_med, central_min, central_max,
+        high_med, high_min, high_max, high-end_med, high-end_min, high-end_max
     """
     # Get low, central, and high projections for 2100
-    proj_2100_df = read_proj_2100_df(gauges_cities_megacities='gauges')
+    year_2100_df = read_year_2100_df(slr_str=slr_str, gauges_str='gauges', cities_str=None)
     # Groupby country and calculate count, median, min, and max
-    count_df = proj_2100_df.groupby('gauge_country').count()
-    med_df = proj_2100_df.groupby('gauge_country').median(numeric_only=True)
-    min_df = proj_2100_df.groupby('gauge_country').min(numeric_only=True)
-    max_df = proj_2100_df.groupby('gauge_country').max(numeric_only=True)
+    count_df = year_2100_df.groupby('gauge_country').count()
+    med_df = year_2100_df.groupby('gauge_country').median(numeric_only=True)
+    min_df = year_2100_df.groupby('gauge_country').min(numeric_only=True)
+    max_df = year_2100_df.groupby('gauge_country').max(numeric_only=True)
     # Reformat names of countries (for 'country' column, used when plotting)
     countries = []
     for s in count_df.index:
@@ -663,19 +663,19 @@ def get_country_stats_df(slr_str='rsl', min_count=4):
         countries.append(s)
     # Save country-level stats to new DataFrame
     columns = ['gauge_country', 'country', 'count', 'low_med', 'low_min', 'low_max', 'central_med', 'central_min',
-               'central_max', 'high_med', 'high_min', 'high_max']
+               'central_max', 'high_med', 'high_min', 'high_max', 'high-end_med', 'high-end_min', 'high-end_max']
     country_stats_df = pd.DataFrame(columns=columns)
     country_stats_df['gauge_country'] = count_df.index
     country_stats_df['country'] = countries
-    country_stats_df['count'] = count_df[f'{slr_str}_high'].values
-    for high_low_central in ['low', 'central', 'high']:
-        country_stats_df[f'{high_low_central}_med'] = med_df[f'{slr_str}_{high_low_central}'].values
-        country_stats_df[f'{high_low_central}_min'] = min_df[f'{slr_str}_{high_low_central}'].values
-        country_stats_df[f'{high_low_central}_max'] = max_df[f'{slr_str}_{high_low_central}'].values
+    country_stats_df['count'] = count_df['high-end'].values
+    for proj_str in ['low', 'central', 'high', 'high-end']:
+        country_stats_df[f'{proj_str}_med'] = med_df[proj_str].values
+        country_stats_df[f'{proj_str}_min'] = min_df[proj_str].values
+        country_stats_df[f'{proj_str}_max'] = max_df[proj_str].values
     # Remove countries with fewer gauges than min_count
     country_stats_df = country_stats_df.where(country_stats_df['count'] >= min_count).dropna()
     # Sort by high-end median and reindex
-    country_stats_df = country_stats_df.sort_values(by='high_med')
+    country_stats_df = country_stats_df.sort_values(by='high-end_med')
     country_stats_df = country_stats_df.reset_index()
     return country_stats_df
 
