@@ -863,9 +863,9 @@ def fig_year_2100_map(slr_str='rsl', gauges_str='gauges', proj_str='high-end', v
     return fig, ax
 
 
-def fig_proj_2100_megacities():
+def fig_year_2100_megacities():
     """
-    Plot high-end, low-end, and central year-2100 RSL projections for megacities.
+    Plot high-end, high, central, and low year-2100 geocentric SLR projections for megacities.
 
     Returns
     -------
@@ -873,49 +873,46 @@ def fig_proj_2100_megacities():
     ax: Axes
     """
     # Create figure and axes
-    fig, ax = plt.subplots(1, 1, figsize=(8, 5), tight_layout=True)
+    fig, ax = plt.subplots(1, 1, figsize=(7, 9), tight_layout=True)
     # Get RSL and no-VLM projections for megacities
-    proj_df = read_proj_2100_df(gauges_cities_megacities='megacities')
-    proj_df = proj_df.dropna()
-    proj_df = proj_df.reset_index()
-    # Sort by high-end RSL within each region
-    proj_df.loc[len(proj_df)] = {'city_short': '—Asian megacities—', 'region': 'asia'}  # headers
-    proj_df.loc[len(proj_df)] = {'city_short': '—Other megacities—', 'region': 'other'}
-    proj_df = proj_df.sort_values(by=['region', 'rsl_high'], ascending=[False, True] )
-    proj_df = proj_df.reset_index()
+    year_2100_df = read_year_2100_df(slr_str='novlm', gauges_str='grid', cities_str='megacities')
+    year_2100_df = year_2100_df.dropna()
+    year_2100_df = year_2100_df.reset_index()
+    # Sort by high-end geocentric SLR
+    year_2100_df = year_2100_df.sort_values(by='high-end', ascending=True)
+    year_2100_df = year_2100_df.reset_index()
     # Plot data
-    for col, label, color, marker, offset in [('rsl_high', 'High-end', 'darkred', 'x', 0.15),
-                                              ('novlm_high', 'High-end without VLM', 'darkred', 'o', -0.15),
-                                              ('rsl_central', 'Central', 'lightblue', 'x', 0.15),
-                                              ('novlm_central', 'Central without VLM', 'lightblue', 'o', -0.15),
-                                              ('rsl_low', 'Low-end', 'darkgreen', 'x', 0.15),
-                                              ('novlm_low', 'Low-end without VLM', 'darkgreen', 'o', -0.15)]:
+    for proj_str, color in [('high-end', 'darkred'), ('high', 'red'), ('central', 'lightblue'), ('low', 'darkgreen')]:
         # Plot GMSL data
-        gmsl_da = read_proj_ts_da(slr_str='gmsl', fusion_high_low_central=col.split('_')[-1], scenario=None)
+        gmsl_da = read_time_series_da(slr_str='gmsl', proj_str=proj_str)
         gmsl = gmsl_da.sel(years=2100).data
         ax.axvline(gmsl, color=color, alpha=0.5, linestyle='--')
-        if col == 'rsl_high':
-            label2 = f'High-end global mean SLR'
+        if proj_str == 'high-end':
+            label = f'High-end global mean SLR'
         else:
-            label2 = None
-        ax.text(gmsl, proj_df.index.max()+0.3, label2,
-                rotation=90, va='top', ha='right', color=color, alpha=0.5)
-        # Plot RSL data
-        ax.scatter(x=proj_df[col], y=proj_df.index+offset, color=color, label=label, marker=marker, s=20)
-        # # Plot VLM component for high-end
-        # if col == 'rsl_high':
-        #     ax.hlines(proj_df.index, proj_df[f'novlm_high'], proj_df[col], color=color, alpha=0.7, label='VLM')
+            label = None
+        ax.text(gmsl, year_2100_df.index.max()+0.3, label, rotation=90, va='top', ha='right', color=color, alpha=0.5)
+        # Plot geocentric SLR data
+        ax.scatter(x=year_2100_df[proj_str], y=year_2100_df.index, color=color, marker='o', s=20,
+                   label=proj_str.capitalize())
     # Legend
-    ax.legend(loc='center right', title=None)
+    ax.legend(loc='upper left', bbox_to_anchor=(0.45, 0.45), title=None)
+    # Shorten some country names and combine with short city names to use as y-axis labels
+    country_short_map = {'China, Hong Kong SAR': 'China', 'Russian Federation': 'Russia',
+                         'United Kingdom': 'UK', 'United Republic of Tanzania': 'Tanzania',
+                         'United States of America': 'USA'}
+    year_2100_df['city_country'] = year_2100_df['city_country'].map(country_short_map
+                                                                    ).fillna(year_2100_df['city_country'])
+    yticklabels = year_2100_df['city_short'] + ', ' + year_2100_df['city_country']
     # Tick labels etc
-    ax.set_yticks(proj_df.index)
-    ax.set_yticklabels(proj_df['city_short'], weight='bold')
-    ax.set_ylim(proj_df.index.min() - 0.5, proj_df.index.max() + 0.5)
-    ax.set_xlim(-0.4, 3.8)
+    ax.set_yticks(year_2100_df.index)
+    ax.set_yticklabels(yticklabels)
+    ax.set_ylim(year_2100_df.index.min() - 0.5, year_2100_df.index.max() + 0.5)
+    ax.set_xlim(0, 2.5)
     ax.xaxis.set_major_locator(plticker.MultipleLocator(base=0.5))
     ax.tick_params(labelbottom=True, labeltop=True, labelleft=False, labelright=True,
                    bottom=False, top=False, right=False, left=False)
-    ax.set_xlabel(f'{SLR_LABEL_DICT["rsl"]} in 2100, m')
+    ax.set_xlabel(f'{SLR_LABEL_DICT["novlm"]} in 2100, m')
     return fig, ax
 
 
