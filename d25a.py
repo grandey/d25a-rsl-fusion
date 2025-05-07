@@ -680,48 +680,57 @@ def get_country_stats_df(slr_str='rsl', min_count=4):
     return country_stats_df
 
 
-def fig_fusion_ts(gauge_city='Bangkok', slr_str='rsl'):
+def fig_fusion_time_series(slr_str='rsl', gauges_str='gauges', loc_str='TANJONG_PAGAR'):
     """
-    Plot time series of median, likely range, and very likely range of sea level for (a) SSP5-8.5 and (b) SSP1-2.6.
-    Also plot high-end and low-end projections.
+    Plot time series of median, likely range, and very likely range of sea level for (a) SSP1-2.6 and (b) SSP5-8.5.
+    Also plot low, high, and high-end projections.
 
     Parameters
     ----------
-    gauge_city : int, str, or None.
-        Name of gauge or city. Or ID of gauge. Default is 'Bangkok'. Ignored if slr_str is 'gmsl'.
     slr_str : str
-        Global mean sea level ('gmsl'), RSL ('rsl'; default), or RSL without the background component ('novlm').
+        Global mean sea level ('gmsl'), relative sea level ('rsl'; default), or
+        geocentric sea level without the background component ('novlm').
+    gauges_str : str
+        Use projections at gauges ('gauges'; default) or grid locations ('grid').
+    loc_str : str or None.
+        Name of gauge or city. Default is 'TANJONG_PAGAR'. Ignored if slr_str is 'gmsl'.
 
     Returns
     -------
     fig : figure
     axs : array of Axes
     """
+    print(f'Called fig_fusion_time_series({slr_str}, {gauges_str}, {loc_str})')
     # Create figure and axes
     fig, axs = plt.subplots(1, 2, figsize=(9, 3.5), sharex=False, sharey=True, tight_layout=True)
     # Loop over scenarios and axes
-    for i, (scenario, ax) in enumerate(zip(['ssp585', 'ssp126'], axs)):
+    for i, (scenario, ax) in enumerate(zip(['ssp126', 'ssp585'], axs)):
         # Get fusion data
         if slr_str == 'gmsl':
-            fusion_da = read_proj_ts_da(slr_str='gmsl', fusion_high_low_central='fusion',
-                                        scenario=scenario).squeeze()
-            city, gauge = None, None
+            fusion_da = read_time_series_da(slr_str=slr_str, proj_str=f'fusion-{scenario}').squeeze()
+            city, location = None, None
         else:
-            fusion_da = read_proj_ts_da(slr_str=slr_str, fusion_high_low_central='fusion',
-                                        scenario=scenario)
+            fusion_da = read_time_series_da(slr_str=slr_str, proj_str=f'fusion-{scenario}')
             try:  # Is gauge parameter a tide gauge?
-                fusion_da = fusion_da.sel(locations=get_gauge_info(gauge=gauge_city)['gauge_id']).squeeze()
+                fusion_da = fusion_da.sel(locations=get_gauge_info(gauge=loc_str)['gauge_id']).squeeze()
                 city = None
-                gauge = gauge_city
+                location = get_gauge_info(gauge=loc_str)['gauge_id']
             except ValueError:  # Or is it a city?
-                city = gauge_city
+                city = loc_str
                 try:
-                    cities_df = read_proj_2100_df(gauges_cities_megacities='cities')
-                    gauge = cities_df.loc[cities_df['city_name'] == city, 'gauge_name'].values[0]
+                    year_2100_df = read_year_2100_df(slr_str=slr_str, gauges_str=gauges_str, cities_str='cities')
+                    location = year_2100_df.loc[year_2100_df['city_name'] == city, 'location'].values[0]
                 except IndexError:  # Or is it a short name of a megacity?
-                    mega_df = read_proj_2100_df(gauges_cities_megacities='megacities')
-                    gauge = mega_df.loc[mega_df['city_short'] == city, 'gauge_name'].values[0]
-                fusion_da = fusion_da.sel(locations=get_gauge_info(gauge=gauge)['gauge_id']).squeeze()
+                    year_2100_df = read_year_2100_df(slr_str=slr_str, gauges_str=gauges_str, cities_str='megacities')
+                    location = year_2100_df.loc[year_2100_df['city_short'] == city, 'location'].values[0]
+                fusion_da = fusion_da.sel(locations=location).squeeze()
+            # Print location info
+            if i == 0:
+                if gauges_str == 'gauges':
+                    gauge_name = get_gauge_info(gauge=location)['gauge_name']
+                    print(f'City is {city}, location is {location} ({gauge_name})')
+                else:
+                    print(f'City is {city}, location is {location}')
         # Plot median, likely range, and very likely range
         ax.plot(fusion_da['years'], fusion_da.sel(quantiles=0.5), color='turquoise', alpha=1, label=f'Median')
         ax.fill_between(fusion_da['years'], fusion_da.sel(quantiles=0.17), fusion_da.sel(quantiles=0.83),
@@ -730,20 +739,22 @@ def fig_fusion_ts(gauge_city='Bangkok', slr_str='rsl'):
                         color='turquoise', alpha=0.1, label='Very likely range')
         ax.fill_between(fusion_da['years'], fusion_da.sel(quantiles=0.05), fusion_da.sel(quantiles=0.17),
                         color='turquoise', alpha=0.1)
-        # Plot high-end or low-end projection
-        if scenario == 'ssp585':
-            high_low = 'high'
-            color = 'darkred'
-        elif scenario == 'ssp126':
-            high_low = 'low'
-            color = 'darkgreen'
-        proj_da = read_proj_ts_da(slr_str=slr_str, fusion_high_low_central=high_low, scenario=None)
-        if slr_str != 'gmsl':
-            proj_da = proj_da.sel(locations=get_gauge_info(gauge=gauge)['gauge_id']).squeeze()
-        ax.plot(proj_da['years'], proj_da, color=color, alpha=1, label=f'{high_low.title()}-end projection')
+        # Plot low, high, and/or high-end projection
+        if scenario == 'ssp126':
+            proj_str_list = ['low',]
+            color_list = ['darkgreen',]
+        elif scenario == 'ssp585':
+            proj_str_list = ['high-end', 'high']
+            color_list = ['darkred', 'red']
+        for proj_str, color in zip(proj_str_list, color_list):
+            proj_da = read_time_series_da(slr_str=slr_str, proj_str=proj_str)
+            if slr_str != 'gmsl':
+                proj_da = proj_da.sel(locations=location).squeeze()
+            ax.plot(proj_da['years'], proj_da, color=color, linestyle='--', alpha=1,
+                    label=f'{proj_str.capitalize()} projection')
         # Customise plot
         ax.set_title(f'({chr(97+i)}) {SCENARIO_LABEL_DICT[scenario]}')
-        ax.legend(loc='upper left', reverse=True)
+        ax.legend(loc='upper left', reverse=False)
         ax.set_xlim([2020, 2100])
         ax.set_xlabel('Year')
         if i == 0:
@@ -752,7 +763,7 @@ def fig_fusion_ts(gauge_city='Bangkok', slr_str='rsl'):
             elif city:
                 ax.set_ylabel(f'{SLR_LABEL_DICT[slr_str]} near {city}, m')
             else:
-                ax.set_ylabel(f'{SLR_LABEL_DICT[slr_str]} at {gauge.replace("_", " ").title()}, m')
+                ax.set_ylabel(f'{SLR_LABEL_DICT[slr_str]} at {gauge_name.replace("_", " ").title()}, m')
         if i == 1:
             ax.tick_params(axis='y', labelright=True)
         if slr_str == 'gmsl':
