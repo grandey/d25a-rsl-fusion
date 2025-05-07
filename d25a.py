@@ -918,64 +918,67 @@ def fig_year_2100_megacities():
 
 def fig_country_stats(slr_str='rsl', min_count=4):
     """
-    Plot country-level median, min, and max (across gauges) of high-end, low-end, and central RSL projections for 2100.
+    Plot country-level median, min, and max (across gauges) of high-end, high, central, and low projections for 2100.
 
     Parameters
     ----------
     slr_str : str
-        RSL ('rsl'; default) or RSL without the background component ('novlm').
+        Relative sea level ('rsl'; default) or geocentric sea level without the background component ('novlm').
     min_count : int
-        Minimum number of tide gauges required to plot. Default is 4.
+        Minimum number of gauges required for country to be included. Default is 4.
 
     Returns
     -------
     fig : figure
-    (ax1, ax2) : tuple of Axes
+    axs : tuple of Axes
     """
     # Create figure and axes
-    fig, ax1 = plt.subplots(1, 1, figsize=(10, 12), tight_layout=True)
+    fig, ax1 = plt.subplots(1, 1, figsize=(10, 14), tight_layout=True)
     ax2 = ax1.twinx()  # twin axis, to split legend
     ax3 = ax1.twinx()  # twin axis, to split legend
+    ax4 = ax1.twinx()  # twin axis, to split legend
     # Get country-level stats
     country_stats_df = get_country_stats_df(slr_str=slr_str, min_count=min_count)
     # Plot data
-    for high_low_central, offset, color, ax in [('high', 0.2, 'darkred', ax1), ('central', 0, 'lightblue', ax2),
-                                                ('low', -0.2, 'darkgreen', ax3)]:
+    for proj_str, offset, color, ax in [('high-end', 0.2, 'darkred', ax1), ('high', 0.05, 'red', ax2),
+                                        ('central', -0.1, 'lightblue', ax3), ('low', -0.25, 'darkgreen', ax4)]:
         # Country-level RSL data
         y = country_stats_df.index + offset
-        ax.scatter(x=country_stats_df[f'{high_low_central}_med'], y=y, color=color, label='Median', s=15)
-        ax.hlines(y, country_stats_df[f'{high_low_central}_min'], country_stats_df[f'{high_low_central}_max'],
+        ax.scatter(x=country_stats_df[f'{proj_str}_med'], y=y, color=color, label='Median', s=15)
+        ax.hlines(y, country_stats_df[f'{proj_str}_min'], country_stats_df[f'{proj_str}_max'],
                   color=color, alpha=0.7, label='Range')
         # GMSL data
-        gmsl_da = read_proj_ts_da(slr_str='gmsl', fusion_high_low_central=high_low_central, scenario=None)
+        gmsl_da = read_time_series_da(slr_str='gmsl', proj_str=proj_str)
         gmsl = gmsl_da.sel(years=2100).data
         ax.axvline(gmsl, color=color, alpha=0.5, linestyle='--')
-        if high_low_central == 'high':
+        if proj_str == 'high-end':
             label = f'High-end global mean SLR'
         else:
             label = None
         ax.text(gmsl+0.05, country_stats_df.index.min()-0.3, label,
                 rotation=90, va='bottom', ha='left', color=color, alpha=0.5)
         # Legend
-        if high_low_central == 'high':
-            ax.legend(loc='lower right', bbox_to_anchor=(1, 0.5), title=f'High-end')
-        elif high_low_central == 'low':
-            ax.legend(loc='lower left', bbox_to_anchor=(0, 0.5), title=f'Low-end')
+        if proj_str == 'high-end':
+            ax.legend(loc='lower right', bbox_to_anchor=(1, 0.55), title=proj_str.capitalize())
+        elif proj_str == 'high':
+            ax.legend(loc='upper right', bbox_to_anchor=(1, 0.45), title=proj_str.capitalize())
+        elif proj_str == 'central':
+            ax.legend(loc='lower left', bbox_to_anchor=(0, 0.55), title=proj_str.capitalize())
         else:
-            ax.legend(loc='upper left', bbox_to_anchor=(0, 0.45), title=high_low_central.title())
+            ax.legend(loc='upper left', bbox_to_anchor=(0, 0.45), title=proj_str.capitalize())
         # Tick labels etc
         ax.set_yticks(country_stats_df.index)
-        ax.set_yticklabels(country_stats_df['country'], weight='bold')
+        ax.set_yticklabels(country_stats_df['country'])
         ax.set_ylim(country_stats_df.index.min() - 0.5, country_stats_df.index.max() + 0.5)
         ax.set_xlim(-2, 4)
         ax.xaxis.set_major_locator(plticker.MultipleLocator(base=0.5))
-        if high_low_central == 'high':
+        if proj_str == 'high-end':
             ax.tick_params(labelbottom=True, labeltop=True, labelleft=False, labelright=True,
                            bottom=False, top=False, right=False, left=False)
             ax.set_xlabel(f'{SLR_LABEL_DICT[slr_str]} in 2100, m')
         else:
             ax.axis('off')
-    return fig, (ax1, ax2)
+    return fig, (ax1, ax2, ax3, ax4)
 
 
 def fig_rsl_vs_vlm():
