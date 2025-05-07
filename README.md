@@ -3,7 +3,7 @@
 ## Usage guidelines
 This repository accompanies the following manuscript:
 
-B. S. Grandey et al.,  **Worst-case projections of relative sea-level rise**, in preparation.
+B. S. Grandey et al.,  **Worst-case projections of sea-level rise for cities**, in preparation.
 
 The manuscript serves as the primary reference.
 The Zenodo archive of this repository serves as a secondary reference.
@@ -55,8 +55,18 @@ curl "https://population.un.org/wup/assets/Download/WUP2018-F12-Cities_Over_300K
 cd ../..
 ```
 
-### 3. Produce data for fusion, high-end, and low-end projections
-[**`data_d25a.ipynb`**](data_d25a.ipynb) uses the input data to produce the fusion, high-end, low-end, and central projections, which are saved to [**`data_d25a/`**](data_d25a/).
+The NASA [Distance to the Nearest Coast](https://oceancolor.gsfc.nasa.gov/resources/docs/distfromcoast/) dataset contains the distance to the nearest coast at 0.04-degree resolution:
+
+```
+mkdir -p data_in/nasa
+cd data_in/nasa
+curl "https://oceancolor.gsfc.nasa.gov/images/resources/distfromcoast/dist2coast.txt.bz2" -O
+bzip2 -d dist2coast.txt.bz2
+cd ../..
+```
+
+### 3. Produce data for fusion, high-end, high, central, and low projections
+[**`data_d25a.ipynb`**](data_d25a.ipynb) uses the input data to produce the fusion, high-end, high, central, and low projections, which are saved to [**`data_d25a/`**](data_d25a/).
 
 ### 4. Analyse data and produce figures
 [**`figs_d25a.ipynb`**](figs_d25a.ipynb) analyses the projections and produces the figures.

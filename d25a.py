@@ -19,7 +19,7 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 import re
-from scipy import stats
+from scipy import stats, interpolate
 import seaborn as sns
 from watermark import watermark
 import xarray as xr
@@ -45,6 +45,7 @@ SLR_LABEL_DICT = {'gmsl': 'Global mean SLR', 'rsl': 'Relative SLR', 'novlm': 'Ge
 AR6_DIR = Path.cwd() / 'data_in' / 'ar6'  # directory containing AR6 input data
 PSMSL_DIR = Path.cwd() / 'data_in' / 'psmsl'  # directory containing PSMSL catalogue file
 WUP18_DIR = Path.cwd() / 'data_in' / 'wup18'  # directory containing World Urbanisation Prospects 2018 data
+NASA_DIR = Path.cwd() / 'data_in' / 'nasa'  # directory contain the NASA Distance to the Nearest Coast data
 DATA_DIR = Path.cwd() / 'data_d25a'  # directory containing projections produced by data_d25a.ipynb
 FIG_DIR = Path.cwd() / 'figs_d25a'  # directory in which to save figures
 F_NUM = itertools.count(1)  # main figures counter
@@ -119,6 +120,47 @@ def get_gauge_info(gauge='TANJONG_PAGAR'):
 
 
 @cache
+def get_coastal_cities_df():
+    """
+    Return cities within 120 km of the coast, using World Urbanisation Prospects 2018 city data.
+
+    Returns
+    -------
+    cities_df : DataFrame
+        Dataframe of city_index, city_name, city_country, city_lat, city_lon, population_2025_1000s, coast_distance_km
+
+    Note
+    ----
+    The coast distance is based on linear interpolation of the Distance to the Nearest Coast data, using the lat and lon
+    of each city. The extent of the city is not explicitly considered. The threshold of 120 km is chosen so that all
+    the megacities of Tay et al. (2022) are included: Nanjing is calculated to be 120 km here.
+    """
+    # Read World Urbanisation Prospects 2018 data
+    in_fn = WUP18_DIR / 'WUP2018-F12-Cities_Over_300K.xls'
+    cities_df = pd.read_excel(in_fn, header=16, usecols='A,C,E,G,H,X', index_col=None)
+    # Rename and reorder columns
+    cities_df = cities_df.rename(columns={'Index': 'city_index', 'Country or area': 'city_country',
+                                          'Urban Agglomeration': 'city_name', 'Latitude': 'city_lat',
+                                          'Longitude': 'city_lon', 2025: 'population_2025_1000s'})
+    cities_df = cities_df.set_index('city_index')
+    cities_df = cities_df[['city_name', 'city_country', 'city_lat', 'city_lon', 'population_2025_1000s']]
+    # Read Distance to the Nearest Coast data (https://oceancolor.gsfc.nasa.gov/resources/docs/distfromcoast/)
+    in_fn = NASA_DIR / 'dist2coast.txt'
+    dist_df = pd.read_csv(in_fn, sep='\t', names=['lon', 'lat', 'distance'])
+    # Grid as Numpy array and create interpolator
+    dist_pivot = dist_df.pivot(index='lat', columns='lon', values='distance')
+    interp = interpolate.RegularGridInterpolator((dist_pivot.index, dist_pivot.columns), dist_pivot.values,
+                                                 method='linear', bounds_error=True, fill_value=np.nan)
+    # Interpolate distance using lat-lon coords of cities
+    cities_coords = cities_df[['city_lat', 'city_lon']].to_numpy()
+    cities_df['coast_distance_km'] = interp(cities_coords)
+    cities_df['coast_distance_km'] = cities_df['coast_distance_km'].round().astype(int)
+    # Keep only cities within 120 km of coast and round
+    cities_df = cities_df[cities_df['coast_distance_km'] <= 120]
+    return cities_df
+
+
+@cache
 def get_coastal_loc_df():
     """
     Return AR6 projections locations with (i) data AND (ii) a gauge or a coastal city.
@@ -147,10 +189,10 @@ def get_coastal_loc_df():
     gauge_loc_df = gauge_loc_df.set_index('loc').sort_index()  # set index and sort
     # City locations in world urbanisation prospects data
     in_fn = WUP18_DIR / 'WUP2018-F12-Cities_Over_300K.xls'
-    cities_df = pd.read_excel(in_fn, header=16, usecols='A,C,E,G,H', index_col=None)
+    cities_df = get_coastal_cities_df().copy()
     cities_loc_df = pd.DataFrame()
-    cities_loc_df['lat'] = cities_df['Latitude'].round().astype(int)  # round lat and lon
-    cities_loc_df['lon'] = cities_df['Longitude'].round().astype(int)
+    cities_loc_df['lat'] = cities_df['city_lat'].round().astype(int)  # round lat and lon
+    cities_loc_df['lon'] = cities_df['city_lon'].round().astype(int)
     cities_loc_df['loc'] = ('10' + (90 - cities_loc_df['lat']).astype(str).str.zfill(3) + '0' +  # form 10MMM0NNN0
                             (cities_loc_df['lon'] % 360).astype(str).str.zfill(3) + '0').astype(int)
     cities_loc_df = cities_loc_df.drop_duplicates()  # drop duplications
@@ -484,15 +526,8 @@ def write_year_2100_df(slr_str='rsl', gauges_str='gauges', cities_str=None):
     if cities_str is not None:
         if cities_str not in ('cities', 'megacities'):
             raise ValueError(f'Invalid cities_str: {cities_str}')
-        # Read World Urbanisation Prospects 2018 data
-        in_fn = WUP18_DIR / 'WUP2018-F12-Cities_Over_300K.xls'
-        cities_df = pd.read_excel(in_fn, header=16, usecols='A,C,E,G,H,X', index_col=None)
-        # Rename and reorder columns
-        cities_df = cities_df.rename(columns={'Index': 'city_index', 'Country or area': 'city_country',
-                                              'Urban Agglomeration': 'city_name', 'Latitude': 'city_lat',
-                                              'Longitude': 'city_lon', 2025: 'population_2025_1000s'})
-        cities_df = cities_df.set_index('city_index')
-        cities_df = cities_df[['city_name', 'city_country', 'city_lat', 'city_lon', 'population_2025_1000s']]
+        # Get coastal cities data
+        cities_df = get_coastal_cities_df().copy()
         # If megacities, then only include cities identified by Tay et al. (2022)
         if cities_str == 'megacities':
             cities_df = cities_df.loc[cities_df['population_2025_1000s'] >= 5000]  # all have population >= 5 million
@@ -772,122 +807,22 @@ def fig_fusion_time_series(slr_str='rsl', gauges_str='gauges', loc_str='TANJONG_
     return fig, axs
 
 
-def fig_vlm_sensitivity_ts(megacity='Bangkok', vlm_rate_b=-3):
+def fig_year_2100_map(slr_str='rsl', gauges_str='gauges', proj_str='high-end', vmin=1.4, vmax=2.4):
     """
-    Plot time series of high-end, central, and low-end projections using (a) AR6 VLM and (b) assumed VLM rate.
+    Plot map of low, central, high, or high-end projection for 2100.
 
     Parameters
     ----------
-    megacity : str
-        Name of megacity. Default is 'Bangkok'.
-    vlm_rate_b : int or flt
-        Assumed VLM rate to use in panel (b), in mm/yr. Default is -3.
-
-    Returns
-    -------
-    fig : figure
-    axs : array of Axes
-    """
-    # Identify nearest gauge
-    cities_df = read_proj_2100_df(gauges_cities_megacities='megacities')
-    gauge = cities_df.loc[cities_df['city_short'] == megacity, 'gauge_name'].values[0]
-    # Create figure and axes
-    fig, axs = plt.subplots(1, 2, figsize=(9, 3.5), sharex=False, sharey=True, tight_layout=True)
-    # Loop over axes
-    for i, ax in enumerate(axs):
-        # Loop over high-end, central, and low-end projections
-        for high_low_central, color in [('high', 'darkred'), ('central', 'lightblue'), ('low', 'darkgreen')]:
-            # Get data
-            if i == 0:
-                proj_da = read_proj_ts_da(slr_str='rsl', fusion_high_low_central=high_low_central, scenario=None
-                                          ).sel(locations=get_gauge_info(gauge=gauge)['gauge_id']).squeeze()
-            else:
-                proj_da = read_proj_ts_da(slr_str='novlm', fusion_high_low_central=high_low_central,
-                                          scenario=None
-                                          ).sel(locations=get_gauge_info(gauge=gauge)['gauge_id']).squeeze()
-                proj_da = proj_da - vlm_rate_b * 1e-3 * (proj_da['years'] - 2005)  # add assumed VLM rate
-            # Label
-            if high_low_central == 'central':
-                label = high_low_central.title()
-            else:
-                label = f'{high_low_central.title()}-end'
-            # Plot
-            ax.plot(proj_da['years'], proj_da, color=color, alpha=1, label=label)
-        # Customise plot
-        if i == 0:
-            ax.set_title('(a) Using AR6 VLM component')
-        else:
-            ax.set_title(f'(b) Assuming VLM rate of {vlm_rate_b:.1f} mm/yr')
-        ax.legend(loc='upper left')
-        ax.set_xlim([2020, 2100])
-        ax.set_xlabel('Year')
-        if i == 0:
-            ax.set_ylabel(f'{SLR_LABEL_DICT["rsl"]} near {megacity}, m')
-        if i == 1:
-            ax.tick_params(axis='y', labelright=True)
-        if megacity == 'Bangkok':
-            ax.set_ylim(0, 3.3)
-        ax.yaxis.set_major_locator(plticker.MultipleLocator(base=0.5))
-    return fig, axs
-
-
-def fig_p_exceed_heatmap():
-    """
-    Plot heatmap table showing probability of GMSL exceeding the low-end, central, and high-end projections in 2100.
-
-    Returns
-    -------
-    fig : Figure
-    ax : Axes
-    """
-    # Create figure
-    fig, ax = plt.subplots(1, 1, figsize=(5.5, 2), tight_layout=True)
-    # For each combination of projection and scenario, calculate probability of exceeding projection
-    p_exceed_df = pd.DataFrame()
-    for high_low_central in ['low', 'central', 'high']:
-        for scenario in ['ssp585', 'ssp126']:
-            # Get and linearly interpolate quantile functions for fusion under specified scenario in 2100
-            fusion_da = read_proj_ts_da(slr_str='gmsl', fusion_high_low_central='fusion', scenario=scenario)
-            fusion_da = fusion_da.sel(years=2100)
-            fusion_da = fusion_da.interp(quantiles=np.linspace(0, 1, 20001), method='linear')  # interval of 0.005%
-            # Get high-end, low-end, or central projection
-            proj_da = read_proj_ts_da(slr_str='gmsl', fusion_high_low_central=high_low_central, scenario=None)
-            proj_val = proj_da.sel(years=2100).round(decimals=2).data
-            # Find approximate probability of exceeding projection
-            p_ex_da = (fusion_da > proj_val).mean(dim='quantiles')
-            p_ex_val = p_ex_da.round(decimals=4).data[0]  # round to nearest 0.01%
-            if high_low_central == 'central':
-                p_exceed_df.loc[SCENARIO_LABEL_DICT[scenario], high_low_central.title()] = p_ex_val
-            else:
-                p_exceed_df.loc[SCENARIO_LABEL_DICT[scenario], f'{high_low_central.title()}-end'] = p_ex_val
-    # Plot heatmap
-    sns.heatmap(p_exceed_df, annot=True, fmt='.1%', cmap='inferno_r', vmin=0., vmax=1.,
-                annot_kws={'weight': 'bold', 'fontsize': 'large'}, ax=ax)
-    # Change colorbar labels to percentage
-    cbar = ax.collections[0].colorbar
-    cbar.set_ticks([0., 1.])
-    cbar.set_ticklabels(['0%', '100%'])
-    # Customise plot
-    ax.tick_params(top=False, bottom=False, left=False, right=False, labeltop=True, labelbottom=False, rotation=0)
-    for label in ax.get_xticklabels() + ax.get_yticklabels():
-        label.set_fontweight('bold')
-        label.set_fontsize('large')
-    ax.set_title(f'Probability of global mean SLR exceeding projection in 2100', y=1.35)
-    return fig, ax
-
-
-def fig_proj_2100_map(proj_col_str='rsl_high', gauges_cities_megacities='megacities', region=None):
-    """
-    Plot map of high-end, low-end, or central projection for 2100.
-
-    Parameters
-    ----------
-    proj_col_str : str
-        Name of projection column to plot. Default is 'rsl_high' (high-end projection of RSL).
-    gauges_cities_megacities : str
-        Gauges ('gauges'), cities ('cities'), or megacities ('megacities'; default).
-    region : str or None
-        If not None, plot data for a specific region (e.g. 'asia', 'other').
+    slr_str : str
+        Relative sea level ('rsl'; default) or geocentric sea level without the background component ('novlm').
+    gauges_str : str
+        Use projections at gauges ('gauges'; default) or grid locations ('grid').
+    proj_str : str
+        'low', 'central', 'high', or 'high-end' (default) projection.
+    vmin : int, float, or None
+        Minimum for colorbar. Default is 1.4.
+    vmax : int, float, or None
+        Maximum for colorbar. Default is 2.4.
 
     Returns
     -------
@@ -902,58 +837,29 @@ def fig_proj_2100_map(proj_col_str='rsl_high', gauges_cities_megacities='megacit
     gl.right_labels = False
     ax.coastlines(alpha=0.2, zorder=1)
     # Read projection data
-    proj_df =  read_proj_2100_df(gauges_cities_megacities=gauges_cities_megacities)
-    # Select only a specific region?
-    if region:
-        proj_df = proj_df[proj_df['region'] == region]
-    # If megacities, plot location of megacities with no nearby tide gauge
-    if gauges_cities_megacities == 'megacities':
-        miss_df = proj_df[proj_df[proj_col_str].isnull()]
-        print(f'Plotting {len(miss_df)} megacity locations with no gauge nearby.')
-        plt.scatter(miss_df['city_lon'], miss_df['city_lat'], s=50, marker='^', c='0.5', zorder=2)
+    year_2100_df =  read_year_2100_df(slr_str=slr_str, gauges_str=gauges_str, cities_str=None)
     # Plot projections
-    proj_df = proj_df.dropna().sort_values(by=proj_col_str)
-    print(f'Plotting projection for {len(proj_df)} locations.')
+    year_2100_df = year_2100_df.sort_values(by=proj_str)
+    print(f'Plotting projection for {len(year_2100_df)} locations.')
     cmap = plt.get_cmap('viridis', 10)
     cmap.set_over('yellow')
     cmap.set_under([0, 0, 0.1])
-    if gauges_cities_megacities == 'gauges':
-        plt.scatter(proj_df['gauge_lon'], proj_df['gauge_lat'], c=proj_df[proj_col_str],
-                    s=10, marker='o', edgecolors='1.', linewidths=0.5, vmin=1, vmax=3, cmap=cmap, zorder=3)
-    elif gauges_cities_megacities == 'cities':
-        plt.scatter(proj_df['city_lon'], proj_df['city_lat'], c=proj_df[proj_col_str],
-                    s=20, marker='o', edgecolors='1.', linewidths=0.5, vmin=1, vmax=3, cmap=cmap, zorder=3)
-    else:
-        plt.scatter(proj_df['city_lon'], proj_df['city_lat'], c=proj_df[proj_col_str],
-                    s=100, marker='o', edgecolors='1.', linewidths=0.5, vmin=1, vmax=3, cmap=cmap, zorder=3)
+    plt.scatter(year_2100_df['lon'], year_2100_df['lat'], c=year_2100_df[proj_str],
+                s=10, marker='o', edgecolors='1.', linewidths=0.5, vmin=vmin, vmax=vmax, cmap=cmap, zorder=3)
     # Colorbar
-    if proj_df[proj_col_str].min() < 1 and proj_df[proj_col_str].max() > 3:
+    if year_2100_df[proj_str].min() < vmin and year_2100_df[proj_str].max() > vmax:
         extend = 'both'
-    elif proj_df[proj_col_str].min() < 1:
+    elif year_2100_df[proj_str].min() < vmin:
         extend = 'min'
-    elif proj_df[proj_col_str].max() > 3:
+    elif year_2100_df[proj_str].max() > vmax:
         extend = 'max'
     else:
         extend = None
-    if 'rsl_' in proj_col_str:
-        label = f'{proj_col_str.split("_")[-1].title()}-end relative SLR in 2100, m'
-    else:
-        label = f'{proj_col_str.split("_")[-1].title()}-end geocentric SLR in 2100, m'
+    if slr_str == 'rsl' and gauges_str == 'gauges':
+        label = f'{proj_str.capitalize()} relative SLR at gauges in 2100, m'
+    elif slr_str == 'novlm' and gauges_str == 'grid':
+        label = f'{proj_str.capitalize()} geocentric SLR near cities in 2100, m'
     cbar = plt.colorbar(orientation='horizontal', extend=extend, pad=0.05, shrink=0.7, label=label)
-    cbar.ax.set_xticks(np.arange(1, 3.1, 0.2))
-    # If megacities and only one region, annotate with city names
-    if gauges_cities_megacities == 'megacities' and region:
-        for index, row in proj_df.iterrows():
-            city_short, lon, lat = row['city_short'], row['city_lon'], row['city_lat']
-            size, weight = 'medium', 'bold'
-            if city_short in ['Tianjin',]:  # on left
-                plt.annotate(f'{city_short}   ', (lon, lat), va='center', ha='right', size=size, weight=weight)
-            elif city_short in ['Seoul', 'Tokyo']:  # above
-                plt.annotate(f'{city_short}', (lon, lat+1.5), va='bottom', ha='center', size=size, weight=weight)
-            elif city_short in ['Osaka', 'Kolkata', 'Mumbai']:  # below
-                plt.annotate(f'{city_short}', (lon, lat-1.5), va='top', ha='center', size=size, weight=weight)
-            else:  # on right (default)
-                plt.annotate(f'  {city_short}', (lon, lat), va='center', ha='left', size=size, weight=weight)
     return fig, ax
 
 
