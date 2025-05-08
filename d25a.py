@@ -665,7 +665,7 @@ def get_year_2100_summary_df(slr_str='rsl', gauges_str='gauges', cities_str=None
         gmsl = read_time_series_da(slr_str='gmsl', proj_str=proj_str).sel(years=2100).data
         gmsl_dict[proj_str] = gmsl
     perc_exceed_ser = year_2100_df.gt(pd.Series(gmsl_dict)).mean() * 100  # % of locations that exceed global mean SLR
-    summary_df.loc['Above global mean SLR, %'] = perc_exceed_ser.round().astype(int)
+    summary_df.loc['Proportion above global mean SLR, %'] = perc_exceed_ser.round().astype(int)
     return summary_df
 
 
