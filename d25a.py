@@ -715,6 +715,49 @@ def get_country_stats_df(slr_str='rsl', min_count=4):
     return country_stats_df
 
 
+def fig_p_exceed_heatmap():
+    """
+    Plot heatmap table of probability of GMSL exceeding the low, central, high, and high-end projections in 2100.
+
+    Returns
+    -------
+    fig : Figure
+    ax : Axes
+    """
+    # Create figure
+    fig, ax = plt.subplots(1, 1, figsize=(5.5, 2), tight_layout=True)
+    # For each combination of projection and scenario, calculate probability of exceeding projection
+    p_exceed_df = pd.DataFrame()
+    for proj_str in ['low', 'central', 'high', 'high-end']:
+        for scenario in ['ssp585', 'ssp126']:
+            # Get and linearly interpolate quantile functions for fusion under specified scenario in 2100
+            fusion_da = read_time_series_da(slr_str='gmsl', proj_str=f'fusion-{scenario}')
+            fusion_da = fusion_da.sel(years=2100)
+            fusion_da = fusion_da.interp(quantiles=np.linspace(0, 1, 20001), method='linear')  # interval of 0.005%
+            # Get projection
+            proj_da = read_time_series_da(slr_str='gmsl', proj_str=proj_str)
+            proj_val = proj_da.sel(years=2100).data  # note: rounding is no longer applied here
+            # Find approximate probability of exceeding projection
+            p_ex_da = (fusion_da > proj_val).mean(dim='quantiles')
+            p_ex_val = p_ex_da.data  # note: rounding is no longer applied here
+            # Save to DataFrame
+            p_exceed_df.loc[SCENARIO_LABEL_DICT[scenario], proj_str.capitalize()] = p_ex_val
+    # Plot heatmap
+    sns.heatmap(p_exceed_df, annot=True, fmt='.1%', cmap='inferno_r', vmin=0., vmax=1.,
+                annot_kws={'weight': 'bold', 'fontsize': 'large'}, ax=ax)
+    # Change colorbar labels to percentage
+    cbar = ax.collections[0].colorbar
+    cbar.set_ticks([0., 1.])
+    cbar.set_ticklabels(['0%', '100%'])
+    # Customise plot
+    ax.tick_params(top=False, bottom=False, left=False, right=False, labeltop=True, labelbottom=False, rotation=0)
+    for label in ax.get_xticklabels() + ax.get_yticklabels():
+        label.set_fontweight('bold')
+        label.set_fontsize('large')
+    ax.set_title(f'Probability of global mean SLR exceeding projection in 2100', y=1.35)
+    return fig, ax
+
+
 def fig_fusion_time_series(slr_str='rsl', gauges_str='gauges', loc_str='TANJONG_PAGAR'):
     """
     Plot time series of median, likely range, and very likely range of sea level for (a) SSP1-2.6 and (b) SSP5-8.5.
