@@ -655,10 +655,17 @@ def get_year_2100_summary_df(slr_str='rsl', gauges_str='gauges', cities_str=None
     # Use these summary statistics to populate new DataFrame
     summary_df = pd.DataFrame(columns=describe_df.columns)
     for col in summary_df.columns:
-        summary_df.loc['Median', col] = describe_df.loc['50%', col]
-        summary_df.loc['IQR', col] = f'{describe_df.loc["25%", col]} to {describe_df.loc["75%", col]}'
-        summary_df.loc['Range', col] = f'{describe_df.loc["min", col]} to {describe_df.loc["max", col]}'
+        summary_df.loc['Median, m', col] = describe_df.loc['50%', col]
+        summary_df.loc['IQR, m', col] = f'{describe_df.loc["25%", col]} to {describe_df.loc["75%", col]}'
+        summary_df.loc['Range, m', col] = f'{describe_df.loc["min", col]} to {describe_df.loc["max", col]}'
         summary_df.loc['Count', col] = int(describe_df.loc['count', col])
+    # Calculate percentage of locations where projection is greater than global mean SLR
+    gmsl_dict = dict()  # dictionary to hold global mean of each projection
+    for proj_str in ['low', 'central', 'high', 'high-end']:
+        gmsl = read_time_series_da(slr_str='gmsl', proj_str=proj_str).sel(years=2100).data
+        gmsl_dict[proj_str] = gmsl
+    perc_exceed_ser = year_2100_df.gt(pd.Series(gmsl_dict)).mean() * 100  # % of locations that exceed global mean SLR
+    summary_df.loc['Above global mean SLR, %'] = perc_exceed_ser.round().astype(int)
     return summary_df
 
 
