@@ -45,7 +45,7 @@ SLR_LABEL_DICT = {'gmsl': 'Global mean SLR', 'rsl': 'Relative SLR', 'novlm': 'Ge
 AR6_DIR = Path.cwd() / 'data_in' / 'ar6'  # directory containing AR6 input data
 PSMSL_DIR = Path.cwd() / 'data_in' / 'psmsl'  # directory containing PSMSL catalogue file
 WUP18_DIR = Path.cwd() / 'data_in' / 'wup18'  # directory containing World Urbanisation Prospects 2018 data
-NASA_DIR = Path.cwd() / 'data_in' / 'nasa'  # directory contain the NASA Distance to the Nearest Coast data
+NASA_DIR = Path.cwd() / 'data_in' / 'nasa'  # directory containing the NASA Distance to the Nearest Coast data
 DATA_DIR = Path.cwd() / 'data_d25a'  # directory containing projections produced by data_d25a.ipynb
 FIG_DIR = Path.cwd() / 'figs_d25a'  # directory in which to save figures
 F_NUM = itertools.count(1)  # main figures counter
@@ -1000,7 +1000,7 @@ def fig_country_stats(slr_str='rsl', min_count=4, high_end_only=True):
 
 def fig_rsl_vs_vlm():
     """
-    Plot RSL vs VLM component of high-end projections for countries with the largest RSL ranges.
+    Plot relative SLR vs VLM component of high-end projections for countries with the largest relative SLR ranges.
 
     Returns
     -------
@@ -1009,20 +1009,21 @@ def fig_rsl_vs_vlm():
     """
     # Create figure and axes
     fig, axs = plt.subplots(2, 3, figsize=(10, 7), tight_layout=True)
-    # Get year-2100 projection data for gauges
-    proj_df = read_proj_2100_df(gauges_cities_megacities='gauges').copy()
+    # Get year-2100 projections of relative and geocentric SLR for gauges
+    rsl_df = read_year_2100_df(slr_str='rsl', gauges_str='gauges', cities_str=None)
+    novlm_df = read_year_2100_df(slr_str='novlm', gauges_str='gauges', cities_str=None)
     # Calculate VLM contribution to high-end projection as difference between total RSL and no-VLM RSL
-    proj_df['vlm_high'] = proj_df['rsl_high'] - proj_df['novlm_high']
+    rsl_df['high-end_vlm'] = rsl_df['high-end'] - novlm_df['high-end']
     # Identify countries with largest RSL ranges
     stats_df = get_country_stats_df(slr_str='rsl', min_count=4)
-    stats_df['high_range'] = stats_df['high_max'] - stats_df['high_min']
-    stats_df = stats_df.sort_values('high_range', ascending=False)
+    stats_df['high-end_range'] = stats_df['high-end_max'] - stats_df['high-end_min']
+    stats_df = stats_df.sort_values('high-end_range', ascending=False)
     countries = stats_df['gauge_country'][0:6]
     # Loop over countries and subplots
     for i, (country, ax) in enumerate(zip(countries, axs.flatten())):
-        country_df = proj_df[proj_df['gauge_country'] == country]  # select data for country
-        ax.scatter(country_df['vlm_high'], country_df['rsl_high'], marker='x', color='darkred', alpha=0.5)  # plot
-        r2 = stats.pearsonr(country_df['vlm_high'], country_df['rsl_high'])[0] ** 2   # coefficienct of determination
+        country_df = rsl_df[rsl_df['gauge_country'] == country]  # select data for country
+        ax.scatter(country_df['high-end_vlm'], country_df['high-end'], marker='x', color='darkred', alpha=0.5)  # plot
+        r2 = stats.pearsonr(country_df['high-end_vlm'], country_df['high-end'])[0] ** 2   # coeff of determination
         ax.text(0.05, 0.95, f'r$^2$ = {r2:.2f}', ha='left', va='top', transform=ax.transAxes, fontsize='large')
         ax.set_title(f'\n({chr(97+i)}) {country.title()}')  # title
         ax.set_aspect('equal')  # fixed aspect ratio
@@ -1036,34 +1037,6 @@ def fig_rsl_vs_vlm():
         if i in (3, 4, 5):
             ax.set_xlabel('VLM component, m')  # x label
     return fig, axs
-
-
-# def fig_p_exceed():
-#     """
-#     Plot histogram showing probability of exceeding high-end projection at tide gauge locations.
-#
-#     Returns
-#     -------
-#     fig : figure
-#     ax : Axes
-#     """
-#     # Create figure and axes
-#     fig, ax = plt.subplots(1, 1, figsize=(5, 3.5), tight_layout=True)
-#     # Get high-end projection data
-#     proj_df = get_info_high_low_exceed_df(slr_str='rsl')
-#     # Loop over scenarios and plot
-#     for scenario, binrange, color, hatch in [('ssp585', (-0.05, 5.25), 'darkred', '/'),
-#                                              ('ssp126', (0, 5.2), 'green', None)]:
-#         sns.histplot(proj_df[f'p_ex_high_{scenario}']*100, binwidth=0.1, binrange=binrange, stat='count',
-#                      label=SCENARIO_LABEL_DICT[scenario], color=color, hatch=hatch, ax=ax)
-#     # Customise axes etc
-#     plt.xlim([0, 5.1])
-#     ax.xaxis.set_major_locator(plticker.MultipleLocator(base=0.5))
-#     ax.yaxis.set_major_locator(plticker.MultipleLocator(base=100))
-#     plt.xlabel('Probability of exceeding high-end RSL, %')
-#     plt.ylabel('Number of tide gauge locations')
-#     plt.legend()
-#     return fig, ax
 
 
 def name_save_fig(fig, fso='o', exts=('pdf', 'png'), close=False):
