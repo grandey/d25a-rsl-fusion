@@ -757,7 +757,7 @@ def get_gmsl_df():
 
 def fig_fusion_time_series(slr_str='rsl', gauges_str='gauges', loc_str='TANJONG_PAGAR'):
     """
-    Plot time series of median, likely range, and very likely range of sea level for (a) SSP1-2.6 and (b) SSP5-8.5.
+    Plot time series of median, likely range, and very likely range of sea level for (a) SSP5-8.5 and (b) SSP1-2.6.
     Also plot low, high, and high-end projections.
 
     Parameters
@@ -777,9 +777,9 @@ def fig_fusion_time_series(slr_str='rsl', gauges_str='gauges', loc_str='TANJONG_
     """
     print(f'Called fig_fusion_time_series({slr_str}, {gauges_str}, {loc_str})')
     # Create figure and axes
-    fig, axs = plt.subplots(1, 2, figsize=(9, 3.5), sharex=False, sharey=True, tight_layout=True)
+    fig, axs = plt.subplots(1, 2, figsize=(9, 3.6), sharex=False, sharey=True, tight_layout=True)
     # Loop over scenarios and axes
-    for i, (scenario, ax) in enumerate(zip(['ssp126', 'ssp585'], axs)):
+    for i, (scenario, ax) in enumerate(zip(['ssp585', 'ssp126'], axs)):
         # Get fusion data
         if slr_str == 'gmsl':
             fusion_da = read_time_series_da(slr_str=slr_str, proj_str=f'fusion-{scenario}').squeeze()
