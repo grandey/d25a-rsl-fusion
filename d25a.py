@@ -736,7 +736,7 @@ def get_gmsl_df():
     gmsl_df = pd.DataFrame()#columns=('low', 'central', 'high', 'high-end'))
     # Definitions
     gmsl_df.loc['high-end', 'definition'] = '95th %ile under SSP5-8.5'
-    gmsl_df.loc['high', 'definition'] = '83rd %ile under SSP2-4.5'
+    gmsl_df.loc['high', 'definition'] = '83rd %ile under SSP5-8.5'
     gmsl_df.loc['central', 'definition'] = '50th %ile under SSP2-4.5'
     gmsl_df.loc['low', 'definition'] = '17th %ile under SSP1-2.6'
     # Year-2100 global mean SLR projection
