@@ -735,10 +735,10 @@ def get_gmsl_df():
     # Create DataFrame
     gmsl_df = pd.DataFrame()#columns=('low', 'central', 'high', 'high-end'))
     # Definitions
-    gmsl_df.loc['low', 'definition'] = '17th %ile under SSP1-2.6'
-    gmsl_df.loc['central', 'definition'] = '50th %ile under SSP2-4.5'
-    gmsl_df.loc['high', 'definition'] = '83rd %ile under SSP2-4.5'
     gmsl_df.loc['high-end', 'definition'] = '95th %ile under SSP5-8.5'
+    gmsl_df.loc['high', 'definition'] = '83rd %ile under SSP2-4.5'
+    gmsl_df.loc['central', 'definition'] = '50th %ile under SSP2-4.5'
+    gmsl_df.loc['low', 'definition'] = '17th %ile under SSP1-2.6'
     # Year-2100 global mean SLR projection
     for proj_str in gmsl_df.index:
         gmsl_2100 = read_time_series_da(slr_str='gmsl', proj_str=proj_str).sel(years=2100).data
