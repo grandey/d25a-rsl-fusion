@@ -666,6 +666,12 @@ def get_year_2100_summary_df(slr_str='rsl', gauges_str='gauges', cities_str=None
         gmsl_dict[proj_str] = gmsl
     perc_exceed_ser = year_2100_df.gt(pd.Series(gmsl_dict)).mean() * 100  # % of locations that exceed global mean SLR
     summary_df.loc['Proportion above global mean SLR, %'] = perc_exceed_ser.round().astype(int)
+    # Calculate correlation with high-end projection
+    r_ser = pd.Series()  # dictionary to hold correlation of each projection with high-end projection
+    for proj_str in ['low', 'central', 'high', 'high-end']:
+        r = year_2100_df[proj_str].corr(year_2100_df['high-end'])
+        r_ser[proj_str] = r
+    summary_df.loc['Correlation with high-end projection'] = r_ser.round(2)
     return summary_df
 
 
