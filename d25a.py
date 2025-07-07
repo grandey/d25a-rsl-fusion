@@ -557,7 +557,7 @@ def write_year_2100_df(slr_str='rsl', gauges_str='gauges', cities_str=None):
                 # Save nearest gauge location data to DataFrame if distance <= 100 km
                 if temp_df.loc[0, 'gauge_distance_km'] < 100.5:
                     for col in ['location', 'gauge_id', 'gauge_name', 'gauge_distance_km', 'lat', 'lon',
-                                'low', 'central', 'high', 'high-end']:
+                                'low-end', 'low', 'central', 'high', 'high-end']:
                         cities_df.loc[index, col] = temp_df.loc[0, col]
             # If projections are at grid locations, save relevant grid location data to DataFrame
             else:
@@ -566,7 +566,7 @@ def write_year_2100_df(slr_str='rsl', gauges_str='gauges', cities_str=None):
                 temp_df = year_2100_df[(year_2100_df['lat'] == lat0) & (year_2100_df['lon'] == lon0)]
                 temp_df = temp_df.reset_index()
                 if not temp_df.empty:
-                    for col in ['location', 'lat', 'lon', 'low', 'central', 'high', 'high-end']:
+                    for col in ['location', 'lat', 'lon', 'low-end', 'low', 'central', 'high', 'high-end']:
                         cities_df.loc[index, col] = temp_df.loc[0, col]
         # Keep only cities with projection data
         n_tot = len(cities_df)
