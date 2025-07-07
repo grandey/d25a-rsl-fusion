@@ -519,7 +519,7 @@ def write_year_2100_df(slr_str='rsl', gauges_str='gauges', cities_str=None):
         year_2100_df = year_2100_df.loc[year_2100_df['gauge_id'].isnull()]
     else:
         raise ValueError(f'Invalid gauges_str: {gauges_str}')
-    # Get low, central, high, and high-end projections for 2100, rounded to the nearest cm
+    # Get low-end, low, central, high, and high-end projections for 2100, rounded to the nearest cm
     for proj_str in ['low-end', 'low', 'central', 'high', 'high-end']:
         time_series_da = read_time_series_da(slr_str=slr_str, proj_str=proj_str)
         for location in year_2100_df.index:  # loop over gauges and save year-2100 projection to DataFrame
@@ -648,8 +648,8 @@ def get_year_2100_summary_df(slr_str='rsl', gauges_str='gauges', cities_str=None
     """
     # Get year-2100 projections DataFrame
     year_2100_df = read_year_2100_df(slr_str=slr_str, gauges_str=gauges_str, cities_str=cities_str)
-    # Keep only low, central, high, and high-end projections columns
-    year_2100_df = year_2100_df[['low', 'central', 'high', 'high-end']]
+    # Keep only low-end, low, central, high, and high-end projections columns
+    year_2100_df = year_2100_df[['low-end', 'low', 'central', 'high', 'high-end']]
     # Remove rows with missing data
     year_2100_df = year_2100_df.dropna()
     # Get summary statistics using describe and round to 1 d.p.
@@ -663,14 +663,14 @@ def get_year_2100_summary_df(slr_str='rsl', gauges_str='gauges', cities_str=None
         summary_df.loc['Count', col] = int(describe_df.loc['count', col])
     # Calculate percentage of locations where projection is greater than global mean SLR
     gmsl_dict = dict()  # dictionary to hold global mean of each projection
-    for proj_str in ['low', 'central', 'high', 'high-end']:
+    for proj_str in ['low-end', 'low', 'central', 'high', 'high-end']:
         gmsl = read_time_series_da(slr_str='gmsl', proj_str=proj_str).sel(years=2100).data
         gmsl_dict[proj_str] = gmsl
     perc_exceed_ser = year_2100_df.gt(pd.Series(gmsl_dict)).mean() * 100  # % of locations that exceed global mean SLR
     summary_df.loc['Proportion above global mean SLR, %'] = perc_exceed_ser.round().astype(int)
     # Calculate correlation with high-end projection
     r_ser = pd.Series()  # dictionary to hold correlation of each projection with high-end projection
-    for proj_str in ['low', 'central', 'high', 'high-end']:
+    for proj_str in ['low-end', 'low', 'central', 'high', 'high-end']:
         r = year_2100_df[proj_str].corr(year_2100_df['high-end'])
         r_ser[proj_str] = r
     summary_df.loc['Correlation with high-end projection'] = r_ser.round(2)
@@ -695,7 +695,7 @@ def get_country_stats_df(slr_str='rsl', min_count=4):
         DataFrame containing country, count, low_med, low_min, low_max, central_med, central_min, central_max,
         high_med, high_min, high_max, high-end_med, high-end_min, high-end_max
     """
-    # Get low, central, and high projections for 2100
+    # Get low-end, low, central, high, and high-end projections for 2100
     year_2100_df = read_year_2100_df(slr_str=slr_str, gauges_str='gauges', cities_str=None)
     # Groupby country and calculate count, median, min, and max
     count_df = year_2100_df.groupby('gauge_country').count()
@@ -712,13 +712,14 @@ def get_country_stats_df(slr_str='rsl', min_count=4):
         s = s.replace("The", "the")
         countries.append(s)
     # Save country-level stats to new DataFrame
-    columns = ['gauge_country', 'country', 'count', 'low_med', 'low_min', 'low_max', 'central_med', 'central_min',
-               'central_max', 'high_med', 'high_min', 'high_max', 'high-end_med', 'high-end_min', 'high-end_max']
+    columns = ['gauge_country', 'country', 'count', 'low-end_med', 'low-end_min', 'low-end_max',
+               'low_med', 'low_min', 'low_max', 'central_med', 'central_min', 'central_max',
+               'high_med', 'high_min', 'high_max', 'high-end_med', 'high-end_min', 'high-end_max']
     country_stats_df = pd.DataFrame(columns=columns)
     country_stats_df['gauge_country'] = count_df.index
     country_stats_df['country'] = countries
     country_stats_df['count'] = count_df['high-end'].values
-    for proj_str in ['low', 'central', 'high', 'high-end']:
+    for proj_str in ['low-end', 'low', 'central', 'high', 'high-end']:
         country_stats_df[f'{proj_str}_med'] = med_df[proj_str].values
         country_stats_df[f'{proj_str}_min'] = min_df[proj_str].values
         country_stats_df[f'{proj_str}_max'] = max_df[proj_str].values
@@ -738,15 +739,17 @@ def get_gmsl_df():
     Returns
     -------
     gmsl_df : DataFrame
-        DataFrame containing definition, gmsl_2100, p_ssp126, p_ssp585 for low, central, high, and high-end projections.
+        DataFrame containing definition, gmsl_2100, p_ssp126, p_ssp585 for low-end, low, central, high, and high-end
+        projections.
     """
     # Create DataFrame
-    gmsl_df = pd.DataFrame()#columns=('low', 'central', 'high', 'high-end'))
+    gmsl_df = pd.DataFrame()
     # Definitions
     gmsl_df.loc['high-end', 'definition'] = '95th %ile under SSP5-8.5'
     gmsl_df.loc['high', 'definition'] = '83rd %ile under SSP5-8.5'
     gmsl_df.loc['central', 'definition'] = '50th %ile under SSP2-4.5'
     gmsl_df.loc['low', 'definition'] = '17th %ile under SSP1-2.6'
+    gmsl_df.loc['low-end', 'definition'] = '5th %ile under SSP1-2.6'
     # Year-2100 global mean SLR projection
     for proj_str in gmsl_df.index:
         gmsl_2100 = read_time_series_da(slr_str='gmsl', proj_str=proj_str).sel(years=2100).data
