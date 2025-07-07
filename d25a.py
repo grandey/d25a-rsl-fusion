@@ -356,8 +356,8 @@ def write_time_series_da(slr_str='rsl', proj_str='fusion-ssp585'):
         Return global mean sea level ('gmsl'), relative sea level ('rsl'; default), or
         geocentric sea level without the background component ('novlm').
     proj_str : str
-        Probabilistic fusion under a specified scenario ('fusion-ssp585', 'fusion-ssp126'), low, central, high, or
-        high-end projection.
+        Probabilistic fusion under a specified scenario ('fusion-ssp585', 'fusion-ssp126'), low-end, low, central,
+        high, or high-end projection.
 
     Returns
     -------
@@ -368,9 +368,11 @@ def write_time_series_da(slr_str='rsl', proj_str='fusion-ssp585'):
     if 'fusion' in proj_str:
         scenario = proj_str.split('-')[1]
         time_series_da = get_sl_qfs(workflow='fusion_1e+2e', slr_str=slr_str, scenario=scenario).copy().squeeze()
-    # Case 2: low, central, high, or high-end projection
+    # Case 2: low-end, low, central, high, or high-end projection
     else:
-        if proj_str == 'low':
+        if proj_str == 'low-end':
+            workflow, scenario, p = 'fusion_1e+2e', 'ssp126', 0.05
+        elif proj_str == 'low':
             workflow, scenario, p = 'fusion_1e+2e', 'ssp126', 0.17
         elif proj_str == 'central':
             workflow, scenario, p = 'mean_1e+2e', 'ssp245', 0.5
@@ -405,8 +407,8 @@ def read_time_series_da(slr_str='rsl', proj_str='fusion-ssp585'):
         Global mean sea level ('gmsl'), relative sea level ('rsl'; default), or
         geocentric sea level without the background component ('novlm').
     proj_str : str
-        Probabilistic fusion under a specified scenario ('fusion-ssp585', 'fusion-ssp126'), low, central, high, or
-        high-end projection.
+        Probabilistic fusion under a specified scenario ('fusion-ssp585', 'fusion-ssp126'), low-end, low, central,
+        high, or high-end projection.
 
     Returns
     -------
@@ -492,7 +494,7 @@ def read_locations_info_df():
 
 def write_year_2100_df(slr_str='rsl', gauges_str='gauges', cities_str=None):
     """
-    Get and write year-2100 low, central, high, and high-end projections for gauge/grid locations or cities.
+    Get and write year-2100 low-end, low, central, high, and high-end projections for gauge/grid locations or cities.
 
     Parameters
     ----------
@@ -518,7 +520,7 @@ def write_year_2100_df(slr_str='rsl', gauges_str='gauges', cities_str=None):
     else:
         raise ValueError(f'Invalid gauges_str: {gauges_str}')
     # Get low, central, high, and high-end projections for 2100, rounded to the nearest cm
-    for proj_str in ['low', 'central', 'high', 'high-end']:
+    for proj_str in ['low-end', 'low', 'central', 'high', 'high-end']:
         time_series_da = read_time_series_da(slr_str=slr_str, proj_str=proj_str)
         for location in year_2100_df.index:  # loop over gauges and save year-2100 projection to DataFrame
             year_2100_df.loc[location, proj_str] = time_series_da.sel(locations=location, years=2100).round(2).data
