@@ -906,15 +906,22 @@ def fig_year_2100_map(slr_str='rsl', gauges_str='gauges', proj_str='high-end', v
         extend = None
     if slr_str == 'rsl' and gauges_str == 'gauges':
         label = f'{proj_str.capitalize()} relative SLR at gauges in 2100, m'
+    elif slr_str == 'rsl' and gauges_str == 'grid':
+        label = f'{proj_str.capitalize()} relative SLR near cities in 2100, m'
     elif slr_str == 'novlm' and gauges_str == 'grid':
         label = f'{proj_str.capitalize()} geocentric SLR near cities in 2100, m'
     cbar = plt.colorbar(orientation='horizontal', extend=extend, pad=0.05, shrink=0.7, label=label)
     return fig, ax
 
 
-def fig_year_2100_megacities():
+def fig_year_2100_megacities(slr_str='rsl'):
     """
-    Plot high-end, high, central, and low year-2100 geocentric SLR projections for megacities.
+    Plot high-end, high, central, and low year-2100 SLR projections for megacities.
+
+    Parameters
+    ----------
+    slr_str : str
+        Relative sea level ('rsl'; default) or geocentric sea level without the background component ('novlm').
 
     Returns
     -------
@@ -924,7 +931,7 @@ def fig_year_2100_megacities():
     # Create figure and axes
     fig, ax = plt.subplots(1, 1, figsize=(7, 9), tight_layout=True)
     # Get RSL and no-VLM projections for megacities
-    year_2100_df = read_year_2100_df(slr_str='novlm', gauges_str='grid', cities_str='megacities')
+    year_2100_df = read_year_2100_df(slr_str=slr_str, gauges_str='grid', cities_str='megacities')
     year_2100_df = year_2100_df.dropna()
     year_2100_df = year_2100_df.reset_index()
     # Sort by high-end geocentric SLR
@@ -957,11 +964,11 @@ def fig_year_2100_megacities():
     ax.set_yticks(year_2100_df.index)
     ax.set_yticklabels(yticklabels)
     ax.set_ylim(year_2100_df.index.min() - 0.5, year_2100_df.index.max() + 0.5)
-    ax.set_xlim(0, 2.5)
+    ax.set_xlim(0, 2.7)
     ax.xaxis.set_major_locator(plticker.MultipleLocator(base=0.5))
     ax.tick_params(labelbottom=True, labeltop=True, labelleft=False, labelright=True,
                    bottom=False, top=False, right=False, left=False)
-    ax.set_xlabel(f'{SLR_LABEL_DICT["novlm"]} in 2100, m')
+    ax.set_xlabel(f'{SLR_LABEL_DICT[slr_str]} in 2100, m')
     return fig, ax
 
 
