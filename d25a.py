@@ -850,6 +850,7 @@ def fig_fusion_time_series(slr_str='rsl', gauges_str='gauges', loc_str='TANJONG_
         ax.set_title(f'({chr(97+i)}) {SCENARIO_LABEL_DICT[scenario]}')
         ax.legend(loc='upper left', reverse=False)
         ax.set_xlim([2020, 2100])
+        ax.tick_params(axis='x', pad=10)
         ax.set_xlabel('Year')
         if i == 0:
             if slr_str == 'gmsl':
@@ -863,6 +864,8 @@ def fig_fusion_time_series(slr_str='rsl', gauges_str='gauges', loc_str='TANJONG_
         if slr_str == 'gmsl':
             ax.set_ylim([0, 2])
         ax.yaxis.set_major_locator(plticker.MultipleLocator(base=0.5))
+        ax.yaxis.set_minor_locator(plticker.MultipleLocator(base=0.1))
+        ax.xaxis.set_minor_locator(plticker.MultipleLocator(base=1))
     return fig, axs
 
 
