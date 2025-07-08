@@ -11,6 +11,7 @@ Notes:
 
 
 import cartopy.crs as ccrs
+import cartopy.feature
 from functools import cache
 import itertools
 import matplotlib.pyplot as plt
@@ -869,7 +870,7 @@ def fig_fusion_time_series(slr_str='rsl', gauges_str='gauges', loc_str='TANJONG_
     return fig, axs
 
 
-def fig_year_2100_map(slr_str='rsl', gauges_str='gauges', proj_str='high-end', vmin=1.4, vmax=2.4):
+def fig_year_2100_map(slr_str='rsl', gauges_str='grid', proj_str='high-end', diff=True, vmin=-0.5, vmax=0.5):
     """
     Plot map of low, central, high, or high-end projection for 2100.
 
@@ -878,13 +879,15 @@ def fig_year_2100_map(slr_str='rsl', gauges_str='gauges', proj_str='high-end', v
     slr_str : str
         Relative sea level ('rsl'; default) or geocentric sea level without the background component ('novlm').
     gauges_str : str
-        Use projections at gauges ('gauges'; default) or grid locations ('grid').
+        Use projections at grid locations ('grid'; default) or gauges ('gauges').
     proj_str : str
         'low', 'central', 'high', or 'high-end' (default) projection.
+    diff : bool
+        If true (default), subtract global mean SLR.
     vmin : int, float, or None
-        Minimum for colorbar. Default is 1.4.
+        Minimum for colorbar. Default is -0.5.
     vmax : int, float, or None
-        Maximum for colorbar. Default is 2.4.
+        Maximum for colorbar. Default is 0.5.
 
     Returns
     -------
@@ -894,18 +897,28 @@ def fig_year_2100_map(slr_str='rsl', gauges_str='gauges', proj_str='high-end', v
     # Set up map
     fig = plt.figure(figsize=(6, 4), tight_layout=True)
     ax = fig.add_subplot(1, 1, 1, projection=ccrs.PlateCarree())
-    gl = ax.gridlines(draw_labels=True, zorder=1)
+    gl = ax.gridlines(draw_labels=True, zorder=1, alpha=0.2)
     gl.bottom_labels = False
     gl.right_labels = False
-    ax.coastlines(alpha=0.2, zorder=1)
+    ax.add_feature(cartopy.feature.LAND, zorder=1)
     # Read projection data
-    year_2100_df =  read_year_2100_df(slr_str=slr_str, gauges_str=gauges_str, cities_str=None)
+    year_2100_df =  read_year_2100_df(slr_str=slr_str, gauges_str=gauges_str, cities_str=None).copy()
+    # Subtract global mean?
+    if diff:
+        gmsl_df = get_gmsl_df()
+        year_2100_df[proj_str] = year_2100_df[proj_str] - gmsl_df['gmsl_2100'][proj_str]
+    # Color map to use
+    if diff:
+        cmap = plt.get_cmap('seismic', 20)
+        cmap.set_over([0.3, 0, 0])
+        cmap.set_under([0, 0, 0.15])
+    else:
+        cmap = plt.get_cmap('viridis', 10)
+        cmap.set_over('yellow')
+        cmap.set_under([0, 0, 0.1])
     # Plot projections
     year_2100_df = year_2100_df.sort_values(by=proj_str)
     print(f'Plotting projection for {len(year_2100_df)} locations.')
-    cmap = plt.get_cmap('viridis', 10)
-    cmap.set_over('yellow')
-    cmap.set_under([0, 0, 0.1])
     plt.scatter(year_2100_df['lon'], year_2100_df['lat'], c=year_2100_df[proj_str],
                 s=10, marker='o', edgecolors='1.', linewidths=0.5, vmin=vmin, vmax=vmax, cmap=cmap, zorder=3)
     # Colorbar
@@ -918,12 +931,17 @@ def fig_year_2100_map(slr_str='rsl', gauges_str='gauges', proj_str='high-end', v
     else:
         extend = None
     if slr_str == 'rsl' and gauges_str == 'gauges':
-        label = f'{proj_str.capitalize()} relative SLR at gauges in 2100, m'
+        label = f'{proj_str.capitalize()} relative SLR at gauges in 2100'
     elif slr_str == 'rsl' and gauges_str == 'grid':
-        label = f'{proj_str.capitalize()} relative SLR near cities in 2100, m'
+        label = f'{proj_str.capitalize()} relative SLR near cities in 2100'
     elif slr_str == 'novlm' and gauges_str == 'grid':
-        label = f'{proj_str.capitalize()} geocentric SLR near cities in 2100, m'
-    cbar = plt.colorbar(orientation='horizontal', extend=extend, pad=0.05, shrink=0.7, label=label)
+        label = f'{proj_str.capitalize()} geocentric SLR near cities in 2100'
+    if diff:
+        label += '\nminus global mean SLR, m'
+    else:
+        label += ', m'
+    cbar = plt.colorbar(orientation='horizontal', extend=extend, pad=0.05, shrink=1, label=label)
+    cbar.ax.xaxis.set_major_locator(plticker.MultipleLocator(base=0.1))
     return fig, ax
 
 
