@@ -950,6 +950,9 @@ def fig_year_2100_megacities(slr_str='rsl'):
     # Sort by high-end projection
     year_2100_df = year_2100_df.sort_values(by='high-end', ascending=True)
     year_2100_df = year_2100_df.reset_index()
+    # Show range, low-end to high-end
+    ax.hlines(y=year_2100_df.index, xmin=year_2100_df['low-end'], xmax=year_2100_df['high-end'],
+              colors='0.9', zorder=1)
     # Plot high-end etc
     for proj_str, color, marker in [('high-end', 'darkred', '^'),
                                     ('high', 'red', '2'),
