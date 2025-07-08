@@ -769,7 +769,7 @@ def get_gmsl_df():
 def fig_fusion_time_series(slr_str='rsl', gauges_str='gauges', loc_str='TANJONG_PAGAR'):
     """
     Plot time series of median, likely range, and very likely range of sea level for (a) SSP5-8.5 and (b) SSP1-2.6.
-    Also plot low, high, and high-end projections.
+    Also plot low-end, low, high, and high-end projections.
 
     Parameters
     ----------
@@ -819,7 +819,8 @@ def fig_fusion_time_series(slr_str='rsl', gauges_str='gauges', loc_str='TANJONG_
                     print(f'City is {city}, location is {location}')
         # Plot median, likely range, and very likely range
         color = 'orange'
-        ax.plot(fusion_da['years'], fusion_da.sel(quantiles=0.5), color=color, alpha=1, label=f'Median')
+        ax.plot(fusion_da['years'], fusion_da.sel(quantiles=0.5), color=color, alpha=1,
+                label=f'{SCENARIO_LABEL_DICT[scenario]} median')
         ax.fill_between(fusion_da['years'], fusion_da.sel(quantiles=0.17), fusion_da.sel(quantiles=0.83),
                         color=color, alpha=0.4, label='Likely range')
         ax.fill_between(fusion_da['years'], fusion_da.sel(quantiles=0.83), fusion_da.sel(quantiles=0.95),
@@ -828,19 +829,19 @@ def fig_fusion_time_series(slr_str='rsl', gauges_str='gauges', loc_str='TANJONG_
                         color=color, alpha=0.1)
         # Plot low, high, and/or high-end projection
         if scenario == 'ssp126':
-            proj_str_list = ['low', 'central']
-            color_list = ['darkgreen', '0.5']
-            linestyle_list = ['--', ':']
+            proj_str_list = ['low', 'low-end']
+            color_list = ['green', 'darkgreen']
+            linestyle_list = [':', '--']
         elif scenario == 'ssp585':
-            proj_str_list = ['high-end', 'high', 'central']
-            color_list = ['darkred', 'red', '0.5']
-            linestyle_list = ['--', '--', ':']
+            proj_str_list = ['high', 'high-end']
+            color_list = ['red', 'darkred']
+            linestyle_list = [':', '--']
         for proj_str, color, linestyle in zip(proj_str_list, color_list, linestyle_list):
             proj_da = read_time_series_da(slr_str=slr_str, proj_str=proj_str)
             if slr_str != 'gmsl':
                 proj_da = proj_da.sel(locations=location).squeeze()
             ax.plot(proj_da['years'], proj_da, color=color, linestyle=linestyle, alpha=1, linewidth=2,
-                    label=f'{proj_str.capitalize()} projection')
+                    label=proj_str.capitalize())
         # Customise plot
         ax.set_title(f'({chr(97+i)}) {SCENARIO_LABEL_DICT[scenario]}')
         ax.legend(loc='upper left', reverse=False)
