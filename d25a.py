@@ -37,6 +37,11 @@ plt.rcParams['figure.titleweight'] = 'bold'  # suptitle
 plt.rcParams['figure.titlesize'] = 'x-large'  # suptitle
 plt.rcParams['xtick.direction'] = 'in'
 plt.rcParams['ytick.direction'] = 'in'
+plt.rcParams['xtick.top'] = True
+plt.rcParams['xtick.bottom'] = True
+plt.rcParams['ytick.left'] = True
+plt.rcParams['ytick.right'] = True
+
 
 # Constants
 SCENARIO_LABEL_DICT = {'ssp126': 'SSP1-2.6', 'ssp585': 'SSP5-8.5', 'ssp245': 'SSP2-4.5'}  # names of scenarios
@@ -975,9 +980,7 @@ def fig_year_2100_megacities(slr_str='rsl'):
     ax.set_xlim(-0.5, 3.2)
     ax.xaxis.set_major_locator(plticker.MultipleLocator(base=0.5))
     ax.xaxis.set_minor_locator(plticker.MultipleLocator(base=0.1))
-    ax.tick_params(labelbottom=True, labeltop=False, labelleft=True, labelright=False,
-                   bottom=True, top=True, right=True, left=True)
-    ax.tick_params(axis='x', which='minor', bottom=True, top=True)
+    ax.tick_params(labelbottom=True, labeltop=False, labelleft=True, labelright=False)
     ax.set_xlabel(f'{SLR_LABEL_DICT[slr_str]} in 2100, m')
     return fig, ax
 
@@ -1053,8 +1056,7 @@ def fig_country_stats(slr_str='rsl', min_count=4, high_end_only=True):
             ax.set_xlim(-2, 4)
         ax.xaxis.set_major_locator(plticker.MultipleLocator(base=0.5))
         if proj_str == 'high-end':
-            ax.tick_params(labelbottom=True, labeltop=True, labelleft=False, labelright=True,
-                           bottom=False, top=False, right=False, left=False)
+            ax.tick_params(labelbottom=True, labeltop=True, labelleft=False, labelright=True, right=True)
             if high_end_only:
                 ax.set_xlabel(f'High-end {SLR_LABEL_DICT[slr_str].split()[0].lower()} SLR in 2100, m')
             else:
