@@ -943,19 +943,21 @@ def fig_year_2100_megacities(slr_str='rsl'):
     # Sort by high-end geocentric SLR
     year_2100_df = year_2100_df.sort_values(by='high-end', ascending=True)
     year_2100_df = year_2100_df.reset_index()
-    # Plot data
-    for proj_str, color in [('high-end', 'darkred'), ('high', 'red'), ('central', 'lightblue'), ('low', 'darkgreen')]:
-        # Plot GMSL data
-        gmsl_da = read_time_series_da(slr_str='gmsl', proj_str=proj_str)
-        gmsl = gmsl_da.sel(years=2100).data
-        ax.axvline(gmsl, color=color, alpha=0.5, linestyle='--')
+    # Plot high-end etc
+    for proj_str, color, marker in [('high-end', 'darkred', '^'),
+                                    ('high', 'red', '2'),
+                                    ('central', 'lightblue', 's'),
+                                    ('low', 'green', '1'),
+                                    ('low-end', 'darkgreen', 'v')]:
+        # Plot GMSL data if high-end
         if proj_str == 'high-end':
+            gmsl_da = read_time_series_da(slr_str='gmsl', proj_str=proj_str)
+            gmsl = gmsl_da.sel(years=2100).data
+            ax.axvline(gmsl, color=color, alpha=0.5, linestyle='--')
             label = f'High-end global mean SLR'
-        else:
-            label = None
-        ax.text(gmsl, year_2100_df.index.max()+0.3, label, rotation=90, va='top', ha='right', color=color, alpha=0.5)
-        # Plot geocentric SLR data
-        ax.scatter(x=year_2100_df[proj_str], y=year_2100_df.index, color=color, marker='o', s=20,
+            ax.text(gmsl, year_2100_df.index.max()+0.3, label, rotation=90, va='top', ha='right', color=color, alpha=0.5)
+        # Plot SLR data for cities
+        ax.scatter(x=year_2100_df[proj_str], y=year_2100_df.index, color=color, marker=marker, s=20,
                    label=proj_str.capitalize())
     # Legend
     ax.legend(loc='upper left', bbox_to_anchor=(0.45, 0.45), title=None)
