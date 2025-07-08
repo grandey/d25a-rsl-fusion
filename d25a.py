@@ -26,7 +26,7 @@ import xarray as xr
 
 
 # Matplotlib settings
-sns.set_style('whitegrid')
+sns.set_style('ticks')
 plt.rcParams['savefig.dpi'] = 300
 plt.rcParams['axes.labelsize'] = 'large'
 plt.rcParams['axes.labelweight'] = 'bold'
@@ -35,9 +35,8 @@ plt.rcParams['legend.title_fontsize'] = 'large'
 plt.rcParams['axes.titleweight'] = 'bold'  # titles for subplots
 plt.rcParams['figure.titleweight'] = 'bold'  # suptitle
 plt.rcParams['figure.titlesize'] = 'x-large'  # suptitle
-plt.rcParams['axes.grid'] = True
-plt.rcParams['axes.axisbelow'] = True  # grid should be behind other elements
-plt.rcParams['grid.color'] = '0.95'
+plt.rcParams['xtick.direction'] = 'in'
+plt.rcParams['ytick.direction'] = 'in'
 
 # Constants
 SCENARIO_LABEL_DICT = {'ssp126': 'SSP1-2.6', 'ssp585': 'SSP5-8.5', 'ssp245': 'SSP2-4.5'}  # names of scenarios
@@ -936,11 +935,11 @@ def fig_year_2100_megacities(slr_str='rsl'):
     """
     # Create figure and axes
     fig, ax = plt.subplots(1, 1, figsize=(7, 9), tight_layout=True)
-    # Get RSL and no-VLM projections for megacities
+    # Get SLR projections for megacities
     year_2100_df = read_year_2100_df(slr_str=slr_str, gauges_str='grid', cities_str='megacities')
     year_2100_df = year_2100_df.dropna()
     year_2100_df = year_2100_df.reset_index()
-    # Sort by high-end geocentric SLR
+    # Sort by high-end projection
     year_2100_df = year_2100_df.sort_values(by='high-end', ascending=True)
     year_2100_df = year_2100_df.reset_index()
     # Plot high-end etc
@@ -955,12 +954,13 @@ def fig_year_2100_megacities(slr_str='rsl'):
             gmsl = gmsl_da.sel(years=2100).data
             ax.axvline(gmsl, color=color, alpha=0.5, linestyle='--')
             label = f'High-end global mean SLR'
-            ax.text(gmsl, year_2100_df.index.max()+0.3, label, rotation=90, va='top', ha='right', color=color, alpha=0.5)
+            ax.text(gmsl, year_2100_df.index.max()+0.3, label, rotation=90, va='top', ha='right',
+                    color=color, alpha=0.5)
         # Plot SLR data for cities
         ax.scatter(x=year_2100_df[proj_str], y=year_2100_df.index, color=color, marker=marker, s=20,
                    label=proj_str.capitalize())
     # Legend
-    ax.legend(loc='upper left', bbox_to_anchor=(0.45, 0.45), title=None)
+    ax.legend(loc='lower right', title=None)
     # Shorten some country names and combine with short city names to use as y-axis labels
     country_short_map = {'China, Hong Kong SAR': 'China', 'Russian Federation': 'Russia',
                          'United Kingdom': 'UK', 'United Republic of Tanzania': 'Tanzania',
@@ -972,10 +972,12 @@ def fig_year_2100_megacities(slr_str='rsl'):
     ax.set_yticks(year_2100_df.index)
     ax.set_yticklabels(yticklabels)
     ax.set_ylim(year_2100_df.index.min() - 0.5, year_2100_df.index.max() + 0.5)
-    ax.set_xlim(0, 2.7)
+    ax.set_xlim(-0.5, 3.2)
     ax.xaxis.set_major_locator(plticker.MultipleLocator(base=0.5))
-    ax.tick_params(labelbottom=True, labeltop=True, labelleft=False, labelright=True,
-                   bottom=False, top=False, right=False, left=False)
+    ax.xaxis.set_minor_locator(plticker.MultipleLocator(base=0.1))
+    ax.tick_params(labelbottom=True, labeltop=False, labelleft=True, labelright=False,
+                   bottom=True, top=True, right=True, left=True)
+    ax.tick_params(axis='x', which='minor', bottom=True, top=True)
     ax.set_xlabel(f'{SLR_LABEL_DICT[slr_str]} in 2100, m')
     return fig, ax
 
