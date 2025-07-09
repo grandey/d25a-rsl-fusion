@@ -895,10 +895,10 @@ def fig_year_2100_map(slr_str='rsl', gauges_str='grid', proj_str='high-end', dif
     ax : Axes
     """
     # Set up map
-    fig = plt.figure(figsize=(6, 4), tight_layout=True)
+    fig = plt.figure(figsize=(12, 5), tight_layout=True)
     ax = fig.add_subplot(1, 1, 1, projection=ccrs.PlateCarree())
     gl = ax.gridlines(draw_labels=True, zorder=1, alpha=0.2)
-    gl.bottom_labels = False
+    gl.top_labels = False
     gl.right_labels = False
     ax.add_feature(cartopy.feature.LAND, zorder=1)
     # Read projection data
@@ -916,11 +916,53 @@ def fig_year_2100_map(slr_str='rsl', gauges_str='grid', proj_str='high-end', dif
         cmap = plt.get_cmap('viridis', 10)
         cmap.set_over('yellow')
         cmap.set_under([0, 0, 0.1])
-    # Plot projections
-    year_2100_df = year_2100_df.sort_values(by=proj_str)
+    # Plot projection
+    year_2100_df = year_2100_df.sort_values(by=proj_str)  # plot larger values last
     print(f'Plotting projection for {len(year_2100_df)} locations.')
+    if gauges_str == 'grid':
+        marker = 's'
+    else:
+        marker = 'o'
     plt.scatter(year_2100_df['lon'], year_2100_df['lat'], c=year_2100_df[proj_str],
-                s=10, marker='o', edgecolors='1.', linewidths=0.5, vmin=vmin, vmax=vmax, cmap=cmap, zorder=3)
+                s=5, marker=marker, edgecolors='1.', linewidths=0.2, vmin=vmin, vmax=vmax, cmap=cmap, zorder=3)
+    # Annotate megacities
+    if gauges_str == 'grid':
+        # Replot projection for megacities using a larger marker, so that they are visible above other points
+        megacities_df = read_year_2100_df(slr_str=slr_str, gauges_str=gauges_str, cities_str='megacities').copy()
+        if diff:
+            megacities_df[proj_str] = megacities_df[proj_str] - gmsl_df['gmsl_2100'][proj_str]
+        megacities_df = megacities_df.sort_values(by='population_2025_1000s')  # plot larger cities last
+        plt.scatter(megacities_df['lon'], megacities_df['lat'], c=megacities_df[proj_str],
+                    s=20, marker='o', edgecolors='1.', linewidths=0.5, vmin=vmin, vmax=vmax, cmap=cmap, zorder=4)
+        # Label megacities
+        offset_dict = {  # manually tune position of labels
+            'Tokyo': (30, 10), 'Nagoya': (40, 0), 'Osaka': (40, -11), 'Fukuoka': (58, -20), 'Seoul': (50, 30),
+            'Dalian': (25, 55), 'Tianjin': (0, 55), 'Qingdao': (10, 70),
+            'Nanjing': (-30, 80), 'Shanghai': (-55, 72), 'Suzhou': (-65, 62), 'Hangzhou': (-75, 55),
+            'Dongguan': (-97, 80), 'Foshan': (-102, 70), 'Guangzhou': (-115, 60), 'Hong Kong': (-120, 50),
+            'Dhaka': (-65, 35), 'Chittagong': (-80, 30), 'Karachi': (-20, 10),
+            'Manila': (30, 15), 'Ho Chi Minh City': (80, 7),
+            'Jakarta': (20, -25), 'Singapore': (-5, -32), 'Bangkok': (-15, -50), 'Yangon': (-17, -45),
+            'Kolkata': (-20, -70), 'Chennai': (-25, -60),
+            'Mumbai': (-25, -60), 'Surat': (-35, -50), 'Ahmadabad': (-50, -38),
+            'Dar es Salaam': (-10, -10), 'Luanda': (-25, -15), 'Lagos': (-15, -33), 'Abidjan': (-20, -15),
+            'Alexandria': (-5, -35), 'Istanbul': (-20, -40), 'Barcelona': (0, -25),
+            'London': (10, 30), 'Saint Petersburg': (15, -15),
+            'New York': (50, 5), 'Philadelphia': (50, -5), 'Washington, D.C.': (45, -15), 'Miami': (35, -5),
+            'Houston': (-10, 20), 'Los Angeles': (-20, -20),
+            'Lima': (-20, -15), 'Buenos Aires': (20, -20), 'Rio de Janeiro': (20, -20)
+        }
+        for _, row in megacities_df.iterrows():
+            city_short = row['city_short']
+            try:
+                offset = offset_dict[city_short]
+            except KeyError:
+                offset = (-20, -15)
+                print(f'{city_short}: using default offset {offset}; {row["lon"]}, {row["lat"]}')
+            ax.annotate(city_short, xy=(row['lon'], row['lat']),
+                        xytext=offset, textcoords='offset points', ha='center', va='center', fontsize='small',
+                        bbox=dict(boxstyle='round,pad=0', fc='none', ec='none'),  # reduce text padding
+                        arrowprops=dict(arrowstyle='-', color='k', lw=0.5, alpha=0.5), zorder=5)
     # Colorbar
     if year_2100_df[proj_str].min() < vmin and year_2100_df[proj_str].max() > vmax:
         extend = 'both'
@@ -937,10 +979,10 @@ def fig_year_2100_map(slr_str='rsl', gauges_str='grid', proj_str='high-end', dif
     elif slr_str == 'novlm' and gauges_str == 'grid':
         label = f'{proj_str.capitalize()} geocentric SLR near cities in 2100'
     if diff:
-        label += '\nminus global mean SLR, m'
+        label += ' minus global mean SLR, m'
     else:
         label += ', m'
-    cbar = plt.colorbar(orientation='horizontal', extend=extend, pad=0.05, shrink=1, label=label)
+    cbar = plt.colorbar(orientation='horizontal', extend=extend, pad=0.05, shrink=0.6, label=label)
     cbar.ax.xaxis.set_major_locator(plticker.MultipleLocator(base=0.1))
     return fig, ax
 
