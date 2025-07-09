@@ -1,49 +1,49 @@
-city_index,city_name,city_country,city_lat,city_lon,population_2025_1000s,coast_distance_km,city_short,location,lat,lon,low-end,low,central,high,high-end
-19,Luanda,Angola,-8.84,13.23,10028,2,Luanda,1009900130,-9.0,13.0,0.28,0.37,0.62,1.07,2.15
-24,Buenos Aires,Argentina,-34.61,-58.4,15752,3,Buenos Aires,1012503020,-35.0,-58.0,0.21,0.29,0.52,0.89,1.85
-59,Chittagong,Bangladesh,22.33,91.84,5653,6,Chittagong,1006800920,22.0,92.0,0.19,0.29,0.52,0.93,1.97
-61,Dhaka,Bangladesh,23.71,90.41,24653,109,Dhaka,1006600900,24.0,90.0,0.17,0.28,0.5,0.91,1.92
-134,Rio de Janeiro,Brazil,-22.9,-43.21,13923,1,Rio de Janeiro,1011303170,-23.0,-43.0,0.25,0.34,0.58,0.98,2.04
-236,Dalian,China,38.91,121.6,6347,2,Dalian,1005101220,39.0,122.0,0.22,0.32,0.56,1.02,2.08
-251,Dongguan,China,23.02,113.74,7773,13,Dongguan,1006701140,23.0,114.0,0.23,0.33,0.58,0.98,2.05
-264,Foshan,China,23.02,113.12,7817,27,Foshan,1006701130,23.0,113.0,0.23,0.33,0.58,0.97,2.04
-283,"Guangzhou, Guangdong",China,23.13,113.26,14879,12,Guangzhou,1006701130,23.0,113.0,0.23,0.33,0.58,0.97,2.04
-298,Hangzhou,China,30.29,120.16,8591,7,Hangzhou,1006001200,30.0,120.0,0.24,0.33,0.57,1.01,2.08
-405,"Nanjing, Jiangsu",China,32.05,118.79,10175,120,Nanjing,1005801190,32.0,119.0,0.23,0.33,0.57,1.01,2.07
-428,Qingdao,China,36.1,120.37,6218,3,Qingdao,1005401200,36.0,120.0,0.21,0.31,0.55,1.0,2.06
-449,Shanghai,China,31.22,121.46,30482,16,Shanghai,1005901210,31.0,121.0,0.24,0.33,0.58,1.02,2.1
-479,"Suzhou, Jiangsu",China,31.3,120.59,8593,58,Suzhou,1005901210,31.0,121.0,0.24,0.33,0.58,1.02,2.1
-489,Tianjin,China,39.11,117.19,14704,46,Tianjin,1005101170,39.0,117.0,0.15,0.25,0.5,0.95,1.97
-610,Hong Kong,"China, Hong Kong SAR",22.28,114.19,7769,1,Hong Kong,1006801140,22.0,114.0,0.24,0.33,0.59,0.99,2.08
-643,Abidjan,Côte d'Ivoire,5.35,-4.03,6057,10,Abidjan,1008503560,5.0,-4.0,0.29,0.37,0.61,1.01,2.07
-681,Al-Iskandariyah (Alexandria),Egypt,31.19,29.9,5807,2,Alexandria,1005900300,31.0,30.0,0.2,0.31,0.56,0.99,1.92
-764,Ahmadabad,India,23.03,72.62,9062,81,Ahmadabad,1006700730,23.0,73.0,0.08,0.17,0.41,0.85,1.85
-801,Chennai (Madras),India,13.05,80.25,12336,3,Chennai,1007700800,13.0,80.0,0.21,0.3,0.54,0.98,2.05
-863,Kolkata (Calcutta),India,22.53,88.36,15845,42,Kolkata,1006700880,23.0,88.0,0.17,0.28,0.5,0.91,1.92
-882,Mumbai (Bombay),India,19.07,72.88,22089,3,Mumbai,1007100730,19.0,73.0,0.19,0.28,0.51,0.95,1.98
-924,Surat,India,21.17,72.83,8582,5,Surat,1006900730,21.0,73.0,0.15,0.24,0.47,0.91,1.92
-955,Jakarta,Indonesia,-6.21,106.84,11634,10,Jakarta,1009601070,-6.0,107.0,0.24,0.35,0.59,1.01,2.14
-1061,Chukyo M.M.A. (Nagoya),Japan,35.18,136.91,9535,10,Nagoya,1005501370,35.0,137.0,0.26,0.37,0.62,1.09,2.22
-1067,Kinki M.M.A. (Osaka),Japan,34.68,135.55,18922,9,Osaka,1005501360,35.0,136.0,0.27,0.37,0.62,1.08,2.21
-1068,Kitakyushu-Fukuoka M.M.A.,Japan,33.61,130.42,5466,1,Fukuoka,1005601300,34.0,130.0,0.27,0.36,0.61,1.06,2.19
-1088,Tokyo,Japan,35.69,139.69,37036,8,Tokyo,1005401400,36.0,140.0,0.24,0.35,0.62,1.11,2.25
-1217,Yangon,Myanmar,16.81,96.16,5813,3,Yangon,1007300960,17.0,96.0,0.21,0.31,0.54,0.95,2.01
-1260,Lagos,Nigeria,6.45,3.4,17156,0,Lagos,1008400030,6.0,3.0,0.28,0.37,0.61,1.02,2.06
-1293,Karachi,Pakistan,24.91,67.08,18077,11,Karachi,1006500670,25.0,67.0,0.12,0.21,0.44,0.88,1.88
-1320,Lima,Peru,-12.04,-77.03,11517,8,Lima,1010202830,-12.0,-77.0,0.24,0.34,0.57,0.96,2.02
-1348,Manila,Philippines,14.6,120.98,15231,2,Manila,1007501210,15.0,121.0,0.19,0.32,0.6,1.01,2.14
-1390,Seoul,Republic of Korea,37.57,126.98,10026,7,Seoul,1005201270,38.0,127.0,0.25,0.34,0.58,1.03,2.11
-1442,Sankt Peterburg (Saint Petersburg),Russian Federation,59.93,30.33,5597,1,Saint Petersburg,1003000300,60.0,30.0,0.19,0.31,0.61,1.0,1.8
-1490,Singapore,Singapore,1.29,103.85,6157,1,Singapore,1008901040,1.0,104.0,0.25,0.35,0.59,1.0,2.13
-1514,Barcelona,Spain,41.39,2.16,5733,3,Barcelona,1004900020,41.0,2.0,0.2,0.31,0.56,0.95,1.86
-1562,Krung Thep (Bangkok),Thailand,13.72,100.53,11392,15,Bangkok,1007601010,14.0,101.0,0.23,0.33,0.57,0.96,2.03
-1600,Istanbul,Turkey,41.01,28.95,16237,2,Istanbul,1004900290,41.0,29.0,0.07,0.22,0.49,0.96,1.83
-1649,London,United Kingdom,51.51,-0.13,9841,27,London,1003800000,52.0,0.0,0.13,0.29,0.58,1.0,1.82
-1665,Dar es Salaam,United Republic of Tanzania,-6.82,39.27,8562,2,Dar es Salaam,1009700390,-7.0,39.0,0.27,0.36,0.6,1.01,2.07
-1724,Houston,United States of America,29.76,-95.37,6890,36,Houston,1006002650,30.0,-95.0,0.26,0.35,0.59,1.01,2.04
-1742,Los Angeles-Long Beach-Santa Ana,United States of America,34.03,-118.24,12678,20,Los Angeles,1005602420,34.0,-118.0,0.2,0.29,0.49,0.88,1.98
-1747,Miami,United States of America,25.79,-80.2,6372,2,Miami,1006402800,26.0,-80.0,0.27,0.36,0.61,1.02,2.09
-1758,New York-Newark,United States of America,40.72,-74.0,19154,0,New York,1004902860,41.0,-74.0,0.25,0.38,0.67,1.1,2.06
-1766,Philadelphia,United States of America,39.95,-75.16,5861,27,Philadelphia,1005002850,40.0,-75.0,0.27,0.38,0.67,1.09,2.06
-1810,"Washington, D.C.",United States of America,38.9,-77.04,5600,31,"Washington, D.C.",1005102830,39.0,-77.0,0.27,0.38,0.66,1.08,2.05
-1845,Thành Pho Ho Chí Minh (Ho Chi Minh City),Viet Nam,10.75,106.67,9816,21,Ho Chi Minh City,1007901070,11.0,107.0,0.22,0.33,0.58,0.97,2.07
+city_index,city_name,city_country,city_lat,city_lon,population_2025_1000s,coast_distance_km,city_short,city_region,location,lat,lon,low-end,low,central,high,high-end
+19,Luanda,Angola,-8.84,13.23,10028,2,Luanda,Africa,1009900130,-9.0,13.0,0.28,0.37,0.62,1.07,2.15
+24,Buenos Aires,Argentina,-34.61,-58.4,15752,3,Buenos Aires,South America,1012503020,-35.0,-58.0,0.21,0.29,0.52,0.89,1.85
+59,Chittagong,Bangladesh,22.33,91.84,5653,6,Chittagong,South Asia,1006800920,22.0,92.0,0.19,0.29,0.52,0.93,1.97
+61,Dhaka,Bangladesh,23.71,90.41,24653,109,Dhaka,South Asia,1006600900,24.0,90.0,0.17,0.28,0.5,0.91,1.92
+134,Rio de Janeiro,Brazil,-22.9,-43.21,13923,1,Rio de Janeiro,South America,1011303170,-23.0,-43.0,0.25,0.34,0.58,0.98,2.04
+236,Dalian,China,38.91,121.6,6347,2,Dalian,East Asia,1005101220,39.0,122.0,0.22,0.32,0.56,1.02,2.08
+251,Dongguan,China,23.02,113.74,7773,13,Dongguan,East Asia,1006701140,23.0,114.0,0.23,0.33,0.58,0.98,2.05
+264,Foshan,China,23.02,113.12,7817,27,Foshan,East Asia,1006701130,23.0,113.0,0.23,0.33,0.58,0.97,2.04
+283,"Guangzhou, Guangdong",China,23.13,113.26,14879,12,Guangzhou,East Asia,1006701130,23.0,113.0,0.23,0.33,0.58,0.97,2.04
+298,Hangzhou,China,30.29,120.16,8591,7,Hangzhou,East Asia,1006001200,30.0,120.0,0.24,0.33,0.57,1.01,2.08
+405,"Nanjing, Jiangsu",China,32.05,118.79,10175,120,Nanjing,East Asia,1005801190,32.0,119.0,0.23,0.33,0.57,1.01,2.07
+428,Qingdao,China,36.1,120.37,6218,3,Qingdao,East Asia,1005401200,36.0,120.0,0.21,0.31,0.55,1.0,2.06
+449,Shanghai,China,31.22,121.46,30482,16,Shanghai,East Asia,1005901210,31.0,121.0,0.24,0.33,0.58,1.02,2.1
+479,"Suzhou, Jiangsu",China,31.3,120.59,8593,58,Suzhou,East Asia,1005901210,31.0,121.0,0.24,0.33,0.58,1.02,2.1
+489,Tianjin,China,39.11,117.19,14704,46,Tianjin,East Asia,1005101170,39.0,117.0,0.15,0.25,0.5,0.95,1.97
+610,Hong Kong,"China, Hong Kong SAR",22.28,114.19,7769,1,Hong Kong,East Asia,1006801140,22.0,114.0,0.24,0.33,0.59,0.99,2.08
+643,Abidjan,Côte d'Ivoire,5.35,-4.03,6057,10,Abidjan,Africa,1008503560,5.0,-4.0,0.29,0.37,0.61,1.01,2.07
+681,Al-Iskandariyah (Alexandria),Egypt,31.19,29.9,5807,2,Alexandria,Africa,1005900300,31.0,30.0,0.2,0.31,0.56,0.99,1.92
+764,Ahmadabad,India,23.03,72.62,9062,81,Ahmadabad,South Asia,1006700730,23.0,73.0,0.08,0.17,0.41,0.85,1.85
+801,Chennai (Madras),India,13.05,80.25,12336,3,Chennai,South Asia,1007700800,13.0,80.0,0.21,0.3,0.54,0.98,2.05
+863,Kolkata (Calcutta),India,22.53,88.36,15845,42,Kolkata,South Asia,1006700880,23.0,88.0,0.17,0.28,0.5,0.91,1.92
+882,Mumbai (Bombay),India,19.07,72.88,22089,3,Mumbai,South Asia,1007100730,19.0,73.0,0.19,0.28,0.51,0.95,1.98
+924,Surat,India,21.17,72.83,8582,5,Surat,South Asia,1006900730,21.0,73.0,0.15,0.24,0.47,0.91,1.92
+955,Jakarta,Indonesia,-6.21,106.84,11634,10,Jakarta,Southeast Asia,1009601070,-6.0,107.0,0.24,0.35,0.59,1.01,2.14
+1061,Chukyo M.M.A. (Nagoya),Japan,35.18,136.91,9535,10,Nagoya,East Asia,1005501370,35.0,137.0,0.26,0.37,0.62,1.09,2.22
+1067,Kinki M.M.A. (Osaka),Japan,34.68,135.55,18922,9,Osaka,East Asia,1005501360,35.0,136.0,0.27,0.37,0.62,1.08,2.21
+1068,Kitakyushu-Fukuoka M.M.A.,Japan,33.61,130.42,5466,1,Fukuoka,East Asia,1005601300,34.0,130.0,0.27,0.36,0.61,1.06,2.19
+1088,Tokyo,Japan,35.69,139.69,37036,8,Tokyo,East Asia,1005401400,36.0,140.0,0.24,0.35,0.62,1.11,2.25
+1217,Yangon,Myanmar,16.81,96.16,5813,3,Yangon,Southeast Asia,1007300960,17.0,96.0,0.21,0.31,0.54,0.95,2.01
+1260,Lagos,Nigeria,6.45,3.4,17156,0,Lagos,Africa,1008400030,6.0,3.0,0.28,0.37,0.61,1.02,2.06
+1293,Karachi,Pakistan,24.91,67.08,18077,11,Karachi,South Asia,1006500670,25.0,67.0,0.12,0.21,0.44,0.88,1.88
+1320,Lima,Peru,-12.04,-77.03,11517,8,Lima,South America,1010202830,-12.0,-77.0,0.24,0.34,0.57,0.96,2.02
+1348,Manila,Philippines,14.6,120.98,15231,2,Manila,Southeast Asia,1007501210,15.0,121.0,0.19,0.32,0.6,1.01,2.14
+1390,Seoul,Republic of Korea,37.57,126.98,10026,7,Seoul,East Asia,1005201270,38.0,127.0,0.25,0.34,0.58,1.03,2.11
+1442,Sankt Peterburg (Saint Petersburg),Russian Federation,59.93,30.33,5597,1,Saint Petersburg,Europe,1003000300,60.0,30.0,0.19,0.31,0.61,1.0,1.8
+1490,Singapore,Singapore,1.29,103.85,6157,1,Singapore,Southeast Asia,1008901040,1.0,104.0,0.25,0.35,0.59,1.0,2.13
+1514,Barcelona,Spain,41.39,2.16,5733,3,Barcelona,Europe,1004900020,41.0,2.0,0.2,0.31,0.56,0.95,1.86
+1562,Krung Thep (Bangkok),Thailand,13.72,100.53,11392,15,Bangkok,Southeast Asia,1007601010,14.0,101.0,0.23,0.33,0.57,0.96,2.03
+1600,Istanbul,Turkey,41.01,28.95,16237,2,Istanbul,Europe,1004900290,41.0,29.0,0.07,0.22,0.49,0.96,1.83
+1649,London,United Kingdom,51.51,-0.13,9841,27,London,Europe,1003800000,52.0,0.0,0.13,0.29,0.58,1.0,1.82
+1665,Dar es Salaam,United Republic of Tanzania,-6.82,39.27,8562,2,Dar es Salaam,Africa,1009700390,-7.0,39.0,0.27,0.36,0.6,1.01,2.07
+1724,Houston,United States of America,29.76,-95.37,6890,36,Houston,North America,1006002650,30.0,-95.0,0.26,0.35,0.59,1.01,2.04
+1742,Los Angeles-Long Beach-Santa Ana,United States of America,34.03,-118.24,12678,20,Los Angeles,North America,1005602420,34.0,-118.0,0.2,0.29,0.49,0.88,1.98
+1747,Miami,United States of America,25.79,-80.2,6372,2,Miami,North America,1006402800,26.0,-80.0,0.27,0.36,0.61,1.02,2.09
+1758,New York-Newark,United States of America,40.72,-74.0,19154,0,New York,North America,1004902860,41.0,-74.0,0.25,0.38,0.67,1.1,2.06
+1766,Philadelphia,United States of America,39.95,-75.16,5861,27,Philadelphia,North America,1005002850,40.0,-75.0,0.27,0.38,0.67,1.09,2.06
+1810,"Washington, D.C.",United States of America,38.9,-77.04,5600,31,"Washington, D.C.",North America,1005102830,39.0,-77.0,0.27,0.38,0.66,1.08,2.05
+1845,Thành Pho Ho Chí Minh (Ho Chi Minh City),Viet Nam,10.75,106.67,9816,21,Ho Chi Minh City,Southeast Asia,1007901070,11.0,107.0,0.22,0.33,0.58,0.97,2.07

@@ -546,6 +546,27 @@ def write_year_2100_df(slr_str='rsl', gauges_str='gauges', cities_str=None):
                     if city_short in city_name:
                         cities_df.loc[city_index, 'city_short'] = city_short
                         break
+        # If megacities, then identify region based on country
+        if cities_str == 'megacities':
+            for city_index in cities_df.index:
+                country = cities_df.loc[city_index, 'city_country']
+                if country in ['Japan', 'Republic of Korea', 'China', 'China, Hong Kong SAR']:
+                    region = 'East Asia'
+                elif country in ['Philippines', 'Viet Nam', 'Thailand', 'Myanmar', 'Indonesia', 'Singapore']:
+                    region = 'Southeast Asia'
+                elif country in ['Bangladesh', 'India', 'Pakistan']:
+                    region = 'South Asia'
+                elif country in ["Côte d'Ivoire", 'Egypt', 'Angola', 'Nigeria', 'United Republic of Tanzania']:
+                    region = 'Africa'
+                elif country in ['Spain', 'United Kingdom', 'Russian Federation', 'Turkey']:
+                    region = 'Europe'
+                elif country in ['United States of America',]:
+                    region = 'North America'
+                elif country in ['Argentina', 'Brazil', 'Peru']:
+                    region = 'South America'
+                else:
+                    region = 'Unidentified'
+                cities_df.loc[city_index, 'city_region'] = region
         # Loop over these cities
         for index, row_ser in cities_df.iterrows():
             # Get data for nearby gauge / grid location
