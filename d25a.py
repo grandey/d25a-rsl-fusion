@@ -900,7 +900,7 @@ def fig_year_2100_map(slr_str='rsl', gauges_str='grid', proj_str='high-end', dif
     gl = ax.gridlines(draw_labels=True, zorder=1, alpha=0.2)
     gl.top_labels = False
     gl.right_labels = False
-    ax.add_feature(cartopy.feature.LAND, zorder=1)
+    ax.add_feature(cartopy.feature.LAND, zorder=2)
     # Read projection data
     year_2100_df =  read_year_2100_df(slr_str=slr_str, gauges_str=gauges_str, cities_str=None).copy()
     # Subtract global mean?
