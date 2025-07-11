@@ -902,7 +902,7 @@ def fig_year_2100_map(slr_str='rsl', gauges_str='grid', proj_str='high-end', dif
     gauges_str : str
         Use projections at grid locations ('grid'; default) or gauges ('gauges').
     proj_str : str
-        'low', 'central', 'high', or 'high-end' (default) projection.
+        'low-end', 'low', 'central', 'high', or 'high-end' (default) projection.
     diff : bool
         If true (default), subtract global mean SLR.
     vmin : int, float, or None
@@ -1069,6 +1069,72 @@ def fig_year_2100_megacities(slr_str='rsl'):
     ax.xaxis.set_minor_locator(plticker.MultipleLocator(base=0.1))
     ax.tick_params(labelbottom=True, labeltop=False, labelleft=True, labelright=False)
     ax.set_xlabel(f'{SLR_LABEL_DICT[slr_str]} in 2100, m')
+    return fig, ax
+
+
+def fig_rsl_vs_novlm(proj_str='high-end', gauges_str='grid', cities_str='megacities', lims=(1.7, 2.7)):
+    """
+    Plot relative SLR vs geocentric SLR globally across megacities (or cities/locations).
+
+    Parameters
+    ----------
+    proj_str : str
+        'low-end', 'low', 'central', 'high', or 'high-end' (default) projection.
+    gauges_str : str
+        Use projections at grid locations ('grid'; default) or gauges ('gauges').
+    cities_str : None or str
+        Arrange projections by gauge/grid location (None), city ('cities'), or megacity ('megacities'; default).
+    lims : None or tuple
+        x- and y-axis limits. Default is (1.7, 2.7).
+
+    Returns
+    -------
+    fig : figure
+    ax : Axes
+    """
+    # Create figure and axes
+    fig, ax = plt.subplots(1, 1, figsize=(4, 4), tight_layout=True)
+    # Get year-2100 projections of relative and geocentric SLR
+    rsl_df = read_year_2100_df(slr_str='rsl', gauges_str=gauges_str, cities_str=cities_str).sort_values('location')
+    novlm_df = read_year_2100_df(slr_str='novlm', gauges_str=gauges_str, cities_str=cities_str).sort_values('location')
+    # Include geocentric SLR projection in 1st DataFrame, so that we can work with a single DataFrame below
+    rsl_df[f'{proj_str}_novlm'] = novlm_df[proj_str]
+    # If megacities, plotting includes colour (region), size (population), and labelled points (some specific points)
+    if cities_str == 'megacities':
+        # Plot each region separately, to simplify link between colour and label in legend
+        for region_str in ['East Asia', 'Southeast Asia', 'South Asia',  # manually specify preferred order of regions
+                           'Africa', 'Europe', 'North America', 'South America']:
+            temp_df = rsl_df[rsl_df['city_region'] == region_str]  # select data for region
+            temp_df = temp_df.sort_values('population_2025_1000s', ascending=False)  # plot smaller points last
+            s = temp_df['population_2025_1000s'] * 0.002  # size depends on population
+            ax.scatter(x=temp_df[f'{proj_str}_novlm'], y=temp_df[proj_str], s=s, label=region_str, alpha=0.5)  # plot
+        # Legend
+        ax.legend(loc='lower right', title=None, fontsize='medium')
+        # Label some specific cities
+        for city_str in ['Tokyo', 'Manila', 'Houston']:
+            temp_ser = rsl_df[rsl_df['city_short'] == city_str].iloc[0]  # select row for city
+            ax.text(temp_ser[f'{proj_str}_novlm'], temp_ser[proj_str], f'  {city_str}', va='center', ha='left')
+    # If not megacities, plotting is simpler
+    else:
+        ax.scatter(x=rsl_df[f'{proj_str}_novlm'], y=rsl_df[proj_str], s=1, alpha=0.5)
+        ax.set_title(f'cities_str = {cities_str}')  # clarify value of cities_str
+    # Label axes
+    if gauges_str == 'gauges':
+        mod_str = 'at gauges '  # modifier string to clarify whether projections are at gauges
+    else:
+        mod_str = ''
+    ax.set_xlabel(f'{proj_str.capitalize()} geocentric SLR {mod_str} in 2100, m')
+    ax.set_ylabel(f'{proj_str.capitalize()} relative SLR {mod_str} in 2100, m')
+    # Set equal axis limits
+    ax.set_aspect('equal')
+    if lims is None:
+        lims = ax.get_ylim()  # relative SLR generally covers larger range than geocentric SLR
+    ax.set_xlim(lims[0], lims[1])
+    ax.set_ylim(lims[0], lims[1])
+    ax.xaxis.set_minor_locator(plticker.MultipleLocator(base=0.1))
+    ax.yaxis.set_minor_locator(plticker.MultipleLocator(base=0.1))
+    # Plot x = y reference line
+    ax.plot(lims, lims, linestyle='-', color='k', alpha=0.1, linewidth=1, zorder=0)
     return fig, ax
 
 
