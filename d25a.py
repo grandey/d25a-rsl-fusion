@@ -1114,10 +1114,16 @@ def fig_rsl_vs_novlm(proj_str='high-end', gauges_str='grid', cities_str='megacit
         for city_str in ['Tokyo', 'Manila', 'Houston']:
             temp_ser = rsl_df[rsl_df['city_short'] == city_str].iloc[0]  # select row for city
             ax.text(temp_ser[f'{proj_str}_novlm'], temp_ser[proj_str], f'  {city_str}', va='center', ha='left')
+        # Coefficient of determination
+        r2 = stats.pearsonr(temp_df[f'{proj_str}_novlm'], temp_df[proj_str])[0] ** 2
+        ax.text(0.05, 0.95, f'r$^2$ = {r2:.2f}', ha='left', va='top', transform=ax.transAxes)
     # If not megacities, plotting is simpler
     else:
         ax.scatter(x=rsl_df[f'{proj_str}_novlm'], y=rsl_df[proj_str], s=1, alpha=0.5)
         ax.set_title(f'cities_str = {cities_str}')  # clarify value of cities_str
+        # Coefficient of determination
+        r2 = stats.pearsonr(rsl_df[f'{proj_str}_novlm'], rsl_df[proj_str])[0] ** 2
+        ax.text(0.05, 0.95, f'r$^2$ = {r2:.2f}', ha='left', va='top', transform=ax.transAxes)
     # Label axes
     if gauges_str == 'gauges':
         mod_str = ' at gauges '  # modifier string to clarify whether projections are at gauges
