@@ -783,7 +783,7 @@ def get_gmsl_df():
     # Probability of exceeding under SSP1-2.6 and SSP5-8.5
     for proj_str in gmsl_df.index:
         for scenario in ['ssp126', 'ssp585']:
-            # Get and linearly interpolate quantile functions for fusion under scenario in 2100
+            # Get and linearly interpolate quantile functions for fusion under scenario by 2100
             fusion_da = read_time_series_da(slr_str='gmsl', proj_str=f'fusion-{scenario}').sel(years=2100)
             fusion_da = fusion_da.interp(quantiles=np.linspace(0, 1, 200001), method='linear')  # interval of 0.0005%
             # Find probability of exceeding projection, expressed as %
@@ -994,11 +994,11 @@ def fig_year_2100_map(slr_str='rsl', gauges_str='grid', proj_str='high-end', dif
     else:
         extend = None
     if slr_str == 'rsl' and gauges_str == 'gauges':
-        label = f'{proj_str.capitalize()} relative SLR at gauges in 2100'
+        label = f'{proj_str.capitalize()} relative SLR by 2100 at gauges'
     elif slr_str == 'rsl' and gauges_str == 'grid':
-        label = f'{proj_str.capitalize()} relative SLR near cities in 2100'
+        label = f'{proj_str.capitalize()} relative SLR by 2100 near cities'
     elif slr_str == 'novlm' and gauges_str == 'grid':
-        label = f'{proj_str.capitalize()} geocentric SLR near cities in 2100'
+        label = f'{proj_str.capitalize()} geocentric SLR by 2100 near cities'
     if diff:
         label += ' minus global mean SLR, m'
     else:
@@ -1068,7 +1068,7 @@ def fig_year_2100_megacities(slr_str='rsl'):
     ax.xaxis.set_major_locator(plticker.MultipleLocator(base=0.5))
     ax.xaxis.set_minor_locator(plticker.MultipleLocator(base=0.1))
     ax.tick_params(labelbottom=True, labeltop=False, labelleft=True, labelright=False)
-    ax.set_xlabel(f'{SLR_LABEL_DICT[slr_str]} in 2100, m')
+    ax.set_xlabel(f'{SLR_LABEL_DICT[slr_str]} by 2100, m')
     return fig, ax
 
 
@@ -1120,11 +1120,11 @@ def fig_rsl_vs_novlm(proj_str='high-end', gauges_str='grid', cities_str='megacit
         ax.set_title(f'cities_str = {cities_str}')  # clarify value of cities_str
     # Label axes
     if gauges_str == 'gauges':
-        mod_str = 'at gauges '  # modifier string to clarify whether projections are at gauges
+        mod_str = ' at gauges '  # modifier string to clarify whether projections are at gauges
     else:
         mod_str = ''
-    ax.set_xlabel(f'{proj_str.capitalize()} geocentric SLR {mod_str} in 2100, m')
-    ax.set_ylabel(f'{proj_str.capitalize()} relative SLR {mod_str} in 2100, m')
+    ax.set_xlabel(f'{proj_str.capitalize()} geocentric SLR by 2100{mod_str}, m')
+    ax.set_ylabel(f'{proj_str.capitalize()} relative SLR by 2100{mod_str}, m')
     # Set equal axis limits
     ax.set_aspect('equal')
     if lims is None:
@@ -1211,9 +1211,9 @@ def fig_country_stats(slr_str='rsl', min_count=4, high_end_only=True):
         if proj_str == 'high-end':
             ax.tick_params(labelbottom=True, labeltop=True, labelleft=False, labelright=True, right=True)
             if high_end_only:
-                ax.set_xlabel(f'High-end {SLR_LABEL_DICT[slr_str].split()[0].lower()} SLR in 2100, m')
+                ax.set_xlabel(f'High-end {SLR_LABEL_DICT[slr_str].split()[0].lower()} SLR by 2100, m')
             else:
-                ax.set_xlabel(f'{SLR_LABEL_DICT[slr_str]} in 2100, m')
+                ax.set_xlabel(f'{SLR_LABEL_DICT[slr_str]} by 2100, m')
         else:
             ax.axis('off')
     return fig, axs
@@ -1254,7 +1254,7 @@ def fig_rsl_vs_vlm():
         ax.xaxis.set_major_locator(plticker.MultipleLocator(base=0.5))  # ticks at interval of 0.5 m
         ax.yaxis.set_major_locator(plticker.MultipleLocator(base=0.5))
         if i in (0, 3):
-            ax.set_ylabel('High-end relative SLR in 2100, m')  # y label
+            ax.set_ylabel('High-end relative SLR by 2100, m')  # y label
         if i in (3, 4, 5):
             ax.set_xlabel('VLM component, m')  # x label
     return fig, axs
