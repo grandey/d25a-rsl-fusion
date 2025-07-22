@@ -994,7 +994,7 @@ def fig_year_2100_map(slr_str='rsl', gauges_str='grid', proj_str='high-end', dif
     else:
         extend = None
     if slr_str == 'rsl' and gauges_str == 'gauges':
-        label = f'{proj_str.capitalize()} relative SLR by 2100 at gauges'
+        label = f'Gauge-based {proj_str} relative SLR by 2100'
     elif slr_str == 'rsl' and gauges_str == 'grid':
         label = f'{proj_str.capitalize()} relative SLR by 2100 near cities'
     elif slr_str == 'novlm' and gauges_str == 'grid':
