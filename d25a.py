@@ -1072,74 +1072,106 @@ def fig_year_2100_megacities(slr_str='rsl'):
     return fig, ax
 
 
-def fig_rsl_vs_novlm(proj_str='high-end', gauges_str='grid', cities_str='megacities', lims=(1.65, 2.75)):
+def fig_y_vs_x(x_proj_str='high-end', x_gauges_str='grid', x_slr_str='novlm',
+               y_proj_str='high-end', y_gauges_str='grid', y_slr_str='rsl',
+               cities_str='megacities', lims=(1.65, 2.75),
+               cities_to_label=('Tokyo', 'Manila', 'Houston', 'Saint Petersburg')):
     """
-    Plot relative SLR vs geocentric SLR globally across megacities (or cities/locations).
+    Plot y (e.g. relative SLR) vs x (e.g. geocentric SLR) globally across megacities (or cities/locations).
 
     Parameters
     ----------
-    proj_str : str
-        'low-end', 'low', 'central', 'high', or 'high-end' (default) projection.
-    gauges_str : str
-        Use projections at grid locations ('grid'; default) or gauges ('gauges').
+    x_proj_str : str
+        Projection to use for x-axis. Default is 'high-end'.
+    x_gauges_str : str
+        Grid locations or gauges for x-axis. Default is 'grid'.
+    x_slr_str : str
+        Relative sea level or geocentric sea level for x-axis. Default is 'novlm'.
+    y_proj_str : str
+        Projection to use for y-axis. Default is 'high-end'.
+    y_gauges_str : str
+        Grid locations or gauges for y-axis. Default is 'grid'.
+    y_slr_str : str
+        Relative sea level or geocentric sea level for y-axis. Default is 'rsl'.
     cities_str : None or str
         Arrange projections by gauge/grid location (None), city ('cities'), or megacity ('megacities'; default).
     lims : None or tuple
         x- and y-axis limits. Default is (1.65, 2.75).
+    cities_to_label : None or tuple
+        Names of cities to label (if megacities). Default is ('Tokyo', 'Manila', 'Houston', 'Saint Petersburg').
 
     Returns
     -------
     fig : figure
     ax : Axes
     """
+    # Get year-2100 projections of relative and geocentric SLR
+    x_df = read_year_2100_df(slr_str=x_slr_str, gauges_str=x_gauges_str, cities_str=cities_str)
+    y_df = read_year_2100_df(slr_str=y_slr_str, gauges_str=y_gauges_str, cities_str=cities_str)
+    # Merge into a single DataFrame
+    if cities_str is None:
+        xy_df = pd.merge(x_df, y_df, on='location', how='inner', suffixes=('_x', '_y'))
+    else:
+        xy_df = pd.merge(x_df, y_df, on='city_index', how='inner', suffixes=('_x', '_y'))
+    if len(xy_df) == 0:
+        print(f'fig_y_vs_x({x_proj_str}, {x_gauges_str}, {x_slr_str}, {y_proj_str}, {y_gauges_str}, {y_slr_str}, '
+              f'{cities_str}): no data to plot.')
+        return -1
     # Create figure and axes
     fig, ax = plt.subplots(1, 1, figsize=(4, 4), tight_layout=True)
-    # Get year-2100 projections of relative and geocentric SLR
-    rsl_df = read_year_2100_df(slr_str='rsl', gauges_str=gauges_str, cities_str=cities_str).sort_values('location')
-    novlm_df = read_year_2100_df(slr_str='novlm', gauges_str=gauges_str, cities_str=cities_str).sort_values('location')
-    # Include geocentric SLR projection in 1st DataFrame, so that we can work with a single DataFrame below
-    rsl_df[f'{proj_str}_novlm'] = novlm_df[proj_str]
     # If megacities, plotting includes colour (region), size (population), and labelled points (some specific points)
     if cities_str == 'megacities':
         # Plot each region separately, to simplify link between colour and label in legend
         for region_str in ['East Asia', 'Southeast Asia', 'South Asia',  # manually specify preferred order of regions
                            'Africa', 'Europe', 'North America', 'South America']:
-            temp_df = rsl_df[rsl_df['city_region'] == region_str]  # select data for region
-            temp_df = temp_df.sort_values('population_2025_1000s', ascending=False)  # plot smaller points last
-            s = temp_df['population_2025_1000s'] * 0.002  # size depends on population
-            ax.scatter(x=temp_df[f'{proj_str}_novlm'], y=temp_df[proj_str], s=s, label=region_str, alpha=0.5)  # plot
+            temp_df = xy_df[xy_df['city_region_x'] == region_str]  # select data for region
+            temp_df = temp_df.sort_values('population_2025_1000s_x', ascending=False)  # plot smaller points last
+            s = temp_df['population_2025_1000s_x'] * 0.002  # size depends on population
+            ax.scatter(x=temp_df[f'{x_proj_str}_x'], y=temp_df[f'{y_proj_str}_y'], s=s, label=region_str, alpha=0.5)
         # Legend
         ax.legend(loc='lower right', title=None, fontsize='medium')
         # Label some specific cities
-        for city_str in ['Tokyo', 'Manila', 'Houston', 'Saint Petersburg']:
+        for city in cities_to_label:
             try:
-                temp_ser = rsl_df[rsl_df['city_short'] == city_str].iloc[0]  # select row for city
-                ax.text(temp_ser[f'{proj_str}_novlm'], temp_ser[proj_str], f'  {city_str}', va='center', ha='left')
+                temp_ser = xy_df[xy_df['city_short_x'] == city].iloc[0]  # select row for city
+                ax.text(temp_ser[f'{x_proj_str}_x'], temp_ser[f'{y_proj_str}_y'], f'  {city}',
+                        va='center', ha='left')
             except IndexError:
                 pass
-        # Coefficient of determination
-        r2 = stats.pearsonr(temp_df[f'{proj_str}_novlm'], temp_df[proj_str])[0] ** 2
-        ax.text(0.05, 0.95, f'r$^2$ = {r2:.2f}', ha='left', va='top', transform=ax.transAxes)
     # If not megacities, plotting is simpler
     else:
-        ax.scatter(x=rsl_df[f'{proj_str}_novlm'], y=rsl_df[proj_str], s=1, alpha=0.5)
+        ax.scatter(x=xy_df[f'{x_proj_str}_x'], y=xy_df[f'{y_proj_str}_y'], s=1, alpha=0.5)
         ax.set_title(f'cities_str = {cities_str}')  # clarify value of cities_str
-        # Coefficient of determination
-        r2 = stats.pearsonr(rsl_df[f'{proj_str}_novlm'], rsl_df[proj_str])[0] ** 2
-        ax.text(0.05, 0.95, f'r$^2$ = {r2:.2f}', ha='left', va='top', transform=ax.transAxes)
+    # Sample size and coefficient of determination
+    n = len(xy_df)
+    r2 = stats.pearsonr(xy_df[f'{x_proj_str}_x'], xy_df[f'{y_proj_str}_y'])[0] ** 2
+    ax.text(0.15, 0.95, f'n = {n:.0f}', ha='center', va='top', transform=ax.transAxes)
+    ax.text(0.15, 0.90, f'r$^2$ = {r2:.2f}', ha='center', va='top', transform=ax.transAxes)
     # Label axes
-    if gauges_str == 'gauges':
-        mod_str = ' at gauges '  # modifier string to clarify whether projections are at gauges
+    if x_gauges_str == 'grid':
+        xlabel_str = f'{x_proj_str.capitalize()} {SLR_LABEL_DICT[x_slr_str].split()[0].lower()} SLR by 2100, m'
+    elif x_gauges_str == 'gauges':
+        xlabel_str = f'Gauge-based {x_proj_str} {SLR_LABEL_DICT[x_slr_str].split()[0].lower()} SLR by 2100, m'
+    if y_gauges_str == 'grid':
+        ylabel_str = f'{y_proj_str.capitalize()} {SLR_LABEL_DICT[y_slr_str].split()[0].lower()} SLR by 2100, m'
+    elif y_gauges_str == 'gauges':
+        ylabel_str = f'Gauge-based {y_proj_str} {SLR_LABEL_DICT[y_slr_str].split()[0].lower()} SLR by 2100, m'
+    if x_gauges_str == 'gauges' or y_gauges_str == 'gauges':
+        ax.set_xlabel(xlabel_str, fontsize='medium')
+        ax.set_ylabel(ylabel_str, fontsize='medium')
     else:
-        mod_str = ''
-    ax.set_xlabel(f'{proj_str.capitalize()} geocentric SLR by 2100{mod_str}, m')
-    ax.set_ylabel(f'{proj_str.capitalize()} relative SLR by 2100{mod_str}, m')
+        ax.set_xlabel(xlabel_str)
+        ax.set_ylabel(ylabel_str)
     # Set equal axis limits
     ax.set_aspect('equal')
     if lims is None:
-        lims = ax.get_ylim()  # relative SLR generally covers larger range than geocentric SLR
+        xlim = ax.get_xlim()
+        ylim = ax.get_ylim()
+        lims = (min(xlim[0], ylim[0]), max(xlim[1], ylim[1]))
     ax.set_xlim(lims[0], lims[1])
     ax.set_ylim(lims[0], lims[1])
+    ax.xaxis.set_major_locator(plticker.MultipleLocator(base=0.2))
+    ax.yaxis.set_major_locator(plticker.MultipleLocator(base=0.2))
     ax.xaxis.set_minor_locator(plticker.MultipleLocator(base=0.1))
     ax.yaxis.set_minor_locator(plticker.MultipleLocator(base=0.1))
     # Plot x = y reference line
