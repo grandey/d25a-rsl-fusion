@@ -855,13 +855,13 @@ def fig_fusion_time_series(slr_str='rsl', gauges_str='gauges', loc_str='TANJONG_
                         color=color, alpha=0.1)
         # Plot low, high, and/or high-end projection
         if scenario == 'ssp126':
-            proj_str_list = ['low', 'low-end']
-            color_list = ['green', 'darkgreen']
-            linestyle_list = [':', '--']
+            proj_str_list = ['central', 'low', 'low-end']
+            color_list = ['lightblue', 'green', 'darkgreen']
+            linestyle_list = [':', ':', '--']
         elif scenario == 'ssp585':
-            proj_str_list = ['high', 'high-end']
-            color_list = ['red', 'darkred']
-            linestyle_list = [':', '--']
+            proj_str_list = ['central', 'high', 'high-end']
+            color_list = ['lightblue', 'red', 'darkred']
+            linestyle_list = [':', ':', '--']
         for proj_str, color, linestyle in zip(proj_str_list, color_list, linestyle_list):
             proj_da = read_time_series_da(slr_str=slr_str, proj_str=proj_str)
             if slr_str != 'gmsl':
