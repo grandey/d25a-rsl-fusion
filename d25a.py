@@ -1072,7 +1072,7 @@ def fig_year_2100_megacities(slr_str='rsl'):
     return fig, ax
 
 
-def fig_rsl_vs_novlm(proj_str='high-end', gauges_str='grid', cities_str='megacities', lims=(1.7, 2.7)):
+def fig_rsl_vs_novlm(proj_str='high-end', gauges_str='grid', cities_str='megacities', lims=(1.65, 2.75)):
     """
     Plot relative SLR vs geocentric SLR globally across megacities (or cities/locations).
 
@@ -1085,7 +1085,7 @@ def fig_rsl_vs_novlm(proj_str='high-end', gauges_str='grid', cities_str='megacit
     cities_str : None or str
         Arrange projections by gauge/grid location (None), city ('cities'), or megacity ('megacities'; default).
     lims : None or tuple
-        x- and y-axis limits. Default is (1.7, 2.7).
+        x- and y-axis limits. Default is (1.65, 2.75).
 
     Returns
     -------
@@ -1111,9 +1111,12 @@ def fig_rsl_vs_novlm(proj_str='high-end', gauges_str='grid', cities_str='megacit
         # Legend
         ax.legend(loc='lower right', title=None, fontsize='medium')
         # Label some specific cities
-        for city_str in ['Tokyo', 'Manila', 'Houston']:
-            temp_ser = rsl_df[rsl_df['city_short'] == city_str].iloc[0]  # select row for city
-            ax.text(temp_ser[f'{proj_str}_novlm'], temp_ser[proj_str], f'  {city_str}', va='center', ha='left')
+        for city_str in ['Tokyo', 'Manila', 'Houston', 'Saint Petersburg']:
+            try:
+                temp_ser = rsl_df[rsl_df['city_short'] == city_str].iloc[0]  # select row for city
+                ax.text(temp_ser[f'{proj_str}_novlm'], temp_ser[proj_str], f'  {city_str}', va='center', ha='left')
+            except IndexError:
+                pass
         # Coefficient of determination
         r2 = stats.pearsonr(temp_df[f'{proj_str}_novlm'], temp_df[proj_str])[0] ** 2
         ax.text(0.05, 0.95, f'r$^2$ = {r2:.2f}', ha='left', va='top', transform=ax.transAxes)
