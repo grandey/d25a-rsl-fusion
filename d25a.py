@@ -1005,6 +1005,8 @@ def fig_year_2100_map(slr_str='rsl', gauges_str='grid', proj_str='high-end', dif
         label += ', m'
     cbar = plt.colorbar(orientation='horizontal', extend=extend, pad=0.05, shrink=0.6, label=label)
     cbar.ax.xaxis.set_major_locator(plticker.MultipleLocator(base=0.1))
+    # Title
+    ax.set_title(label.split(' by ')[0], fontsize='x-large')
     return fig, ax
 
 
