@@ -916,7 +916,7 @@ def fig_year_2100_map(slr_str='rsl', gauges_str='grid', proj_str='high-end', dif
     ax : Axes
     """
     # Set up map
-    fig = plt.figure(figsize=(12, 5), tight_layout=True)
+    fig = plt.figure(figsize=(12, 6), tight_layout=True)
     ax = fig.add_subplot(1, 1, 1, projection=ccrs.PlateCarree())
     gl = ax.gridlines(draw_labels=True, zorder=1, alpha=0.2)
     gl.top_labels = False
