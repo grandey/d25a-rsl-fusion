@@ -244,14 +244,14 @@ def get_sl_qfs(workflow='fusion_1e+2e', slr_str='rsl', scenario='ssp585'):
             in_dir = AR6_DIR / 'ar6' / 'global' / 'dist_workflows' / workflow / scenario
         elif slr_str == 'rsl':  # RSL
             in_dir = AR6_DIR / 'ar6-regional-distributions' / 'regional' / 'dist_workflows' / workflow / scenario
-        elif slr_str == 'novlm':  # RSL
+        elif slr_str == 'novlm':  # geocentric
             in_dir = (AR6_DIR / 'ar6-regional_novlm-distributions' / 'regional_novlm' / 'dist_workflows' / workflow
                       / scenario)
         else:
             raise ValueError(f"slr_str should be 'gmsl', 'rsl', or 'novlm', not '{slr_str}'.")
         in_fn = in_dir / 'total-workflow.nc'
-        qfs_da = xr.open_dataset(in_fn)['sea_level_change']
-        qfs_da = qfs_da.load(decode_cf=True)
+        qfs_da = xr.open_dataset(in_fn, decode_cf=True)['sea_level_change']
+        qfs_da = qfs_da.load()
         # Include only 21st century
         qfs_da = qfs_da.sel(years=slice(2000, 2100))
         # Keep only coastal locations of interest
@@ -339,11 +339,11 @@ def get_fusion_weights():
     qfs_da = get_sl_qfs(workflow='wf_1e', slr_str='gmsl', scenario='ssp585').copy()
     w_da = qfs_da.sel(years=2100).squeeze()
     # Update data to follow trapezoidal weighting function, with weights depending on probability
-    da1 = w_da.sel(quantiles=slice(0, 0.169999))
+    da1 = w_da.sel(quantiles=slice(0, 0.169999)).copy()
     da1[:] = da1.quantiles / 0.17
-    da2 = w_da.sel(quantiles=slice(0.17, 0.83))
+    da2 = w_da.sel(quantiles=slice(0.17, 0.83)).copy()
     da2[:] = 1.
-    da3 = w_da.sel(quantiles=slice(0.830001, 1))
+    da3 = w_da.sel(quantiles=slice(0.830001, 1)).copy()
     da3[:] = (1 - da3.quantiles) / 0.17
     w_da = xr.concat([da1, da2, da3], dim='quantiles')
     # Rename
@@ -392,14 +392,14 @@ def write_time_series_da(slr_str='rsl', proj_str='fusion-ssp585'):
     # Write to NetCDF file
     out_dir = DATA_DIR / 'time_series'
     if not out_dir.exists():
-        out_dir.mkdir()
+        out_dir.mkdir(parents=True, exist_ok=True)
     out_fn = out_dir / f'{slr_str}_{proj_str}_d25a.nc'
     if slr_str == 'gmsl':
         print(f'Writing time_series/{out_fn.name}')
     else:
         print(f'Writing time_series/{out_fn.name} ({len(time_series_da.locations)} locations)')
     time_series_da.to_netcdf(out_fn)
-    return time_series_da
+    return out_fn
 
 
 def read_time_series_da(slr_str='rsl', proj_str='fusion-ssp585'):
@@ -720,6 +720,10 @@ def get_country_stats_df(slr_str='rsl', min_count=4):
     country_stats_df : DataFrame
         DataFrame containing country, count, low_med, low_min, low_max, central_med, central_min, central_max,
         high_med, high_min, high_max, high-end_med, high-end_min, high-end_max
+
+    Note
+    ----
+    This function is no longer used in the analysis that supports the manuscript.
     """
     # Get low-end, low, central, high, and high-end projections for 2100
     year_2100_df = read_year_2100_df(slr_str=slr_str, gauges_str='gauges', cities_str=None)
@@ -802,8 +806,8 @@ def fig_fusion_time_series(slr_str='rsl', gauges_str='gauges', loc_str='TANJONG_
     slr_str : str
         Global mean sea level ('gmsl'), relative sea level ('rsl'; default), or
         geocentric sea level without the background component ('novlm').
-    gauges_str : str
-        Use projections at gauges ('gauges'; default) or grid locations ('grid').
+    gauges_str : str or None.
+        Use projections at gauges ('gauges'; default) or grid locations ('grid'). Ignored if slr_str is 'gmsl'.
     loc_str : str or None.
         Name of gauge or city. Default is 'TANJONG_PAGAR'. Ignored if slr_str is 'gmsl'.
 
@@ -1198,6 +1202,10 @@ def fig_country_stats(slr_str='rsl', min_count=4, high_end_only=True):
     -------
     fig : figure
     axs : tuple of Axes
+
+    Note
+    ----
+    This function is no longer used in the analysis that supports the manuscript.
     """
     # Create figure and axes
     if high_end_only:
@@ -1270,6 +1278,10 @@ def fig_rsl_vs_vlm():
     -------
     fig : figure
     axs : array of Axes
+
+    Note
+    ----
+    This function is no longer used in the analysis that supports the manuscript.
     """
     # Create figure and axes
     fig, axs = plt.subplots(2, 3, figsize=(10, 7), tight_layout=True)
