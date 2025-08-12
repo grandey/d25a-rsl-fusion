@@ -628,7 +628,8 @@ def read_year_2100_df(slr_str='rsl', gauges_str='gauges', cities_str=None):
     Parameters
     ----------
     slr_str : str
-        Relative sea level ('rsl'; default) or geocentric sea level without the background component ('novlm').
+        Relative sea level ('rsl'; default), geocentric sea level without the background component ('novlm'), or
+        contribution from vertical land motion ('vlm'; calculated as relative minus geocentric).
     gauges_str : str
         Use projections at gauges ('gauges'; default) or grid locations ('grid').
     cities_str : None or str
@@ -639,6 +640,16 @@ def read_year_2100_df(slr_str='rsl', gauges_str='gauges', cities_str=None):
     year_2100_df : DataFrame
         Year-2100 projections DataFrame
     """
+    # VLM is a special case: calculate as difference between relative and geocentric SLR
+    if slr_str == 'vlm':
+        rsl_df = read_year_2100_df(slr_str='rsl', gauges_str=gauges_str, cities_str=cities_str).copy()
+        novlm_df = read_year_2100_df(slr_str='novlm', gauges_str=gauges_str, cities_str=cities_str).copy()
+        if not rsl_df['location'].equals(novlm_df['location']):  # location columns should be identical
+            raise ValueError('rsl_df and novlm_df have inconsistent location columns.')
+        year_2100_df = rsl_df.copy()  # most columns should follow rsl_df, apart from the following:
+        cols_to_diff = ['low-end', 'low', 'central', 'high', 'high-end']
+        year_2100_df[cols_to_diff] = rsl_df[cols_to_diff] - novlm_df[cols_to_diff]  # VLM contribution
+        return year_2100_df
     # Input file
     in_dir = DATA_DIR / 'year_2100'
     if cities_str:
@@ -902,7 +913,8 @@ def fig_year_2100_map(slr_str='rsl', gauges_str='grid', proj_str='high-end', dif
     Parameters
     ----------
     slr_str : str
-        Relative sea level ('rsl'; default) or geocentric sea level without the background component ('novlm').
+        Relative sea level ('rsl'; default), geocentric sea level without the background component ('novlm'), or the
+        contribution from VLM ('vlm'; relative minus geocentric).
     gauges_str : str
         Use projections at grid locations ('grid'; default) or gauges ('gauges').
     proj_str : str
@@ -927,13 +939,17 @@ def fig_year_2100_map(slr_str='rsl', gauges_str='grid', proj_str='high-end', dif
     gl.right_labels = False
     ax.add_feature(cartopy.feature.LAND, zorder=2)
     # Read projection data
-    year_2100_df =  read_year_2100_df(slr_str=slr_str, gauges_str=gauges_str, cities_str=None).copy()
+    year_2100_df = read_year_2100_df(slr_str=slr_str, gauges_str=gauges_str, cities_str=None).copy()
     # Subtract global mean?
     if diff:
         gmsl_df = get_gmsl_df()
         year_2100_df[proj_str] = year_2100_df[proj_str] - gmsl_df['gmsl_2100'][proj_str]
     # Color map to use
-    if diff:
+    if slr_str == 'vlm':
+        cmap = plt.get_cmap('seismic', 20)
+        cmap.set_over([0.3, 0, 0])
+        cmap.set_under([0, 0, 0.15])
+    elif diff:
         cmap = plt.get_cmap('seismic', 20)
         cmap.set_over([0.3, 0, 0])
         cmap.set_under([0, 0, 0.15])
@@ -1003,6 +1019,8 @@ def fig_year_2100_map(slr_str='rsl', gauges_str='grid', proj_str='high-end', dif
         label = f'{proj_str.capitalize()} relative SLR by 2100 near cities'
     elif slr_str == 'novlm' and gauges_str == 'grid':
         label = f'{proj_str.capitalize()} geocentric SLR by 2100 near cities'
+    elif slr_str == 'vlm' and gauges_str == 'grid':
+        label = f'VLM contribution to {proj_str} relative SLR by 2100 near cities'
     if diff:
         label += ' minus global mean SLR, m'
     else:
