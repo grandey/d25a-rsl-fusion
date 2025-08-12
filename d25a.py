@@ -1053,7 +1053,7 @@ def fig_year_2100_megacities(slr_str='rsl'):
             ax.axvline(gmsl, color=color, alpha=0.5, linestyle='--')
             label = f'High-end global mean SLR'
             ax.text(gmsl, year_2100_df.index.max()+0.3, label, rotation=90, va='top', ha='right',
-                    color=color, alpha=0.5)
+                    color=color, alpha=0.8)
         # Plot SLR data for cities
         ax.scatter(x=year_2100_df[proj_str], y=year_2100_df.index, color=color, marker=marker, s=20,
                    label=proj_str.capitalize())
@@ -1075,6 +1075,7 @@ def fig_year_2100_megacities(slr_str='rsl'):
     ax.xaxis.set_minor_locator(plticker.MultipleLocator(base=0.1))
     ax.tick_params(labelbottom=True, labeltop=False, labelleft=True, labelright=False)
     ax.set_xlabel(f'{SLR_LABEL_DICT[slr_str]} by 2100, m')
+    ax.axvline(0, color='0.95', linestyle='-', linewidth=1, zorder=0)  # zero line
     return fig, ax
 
 
