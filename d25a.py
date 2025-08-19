@@ -629,7 +629,7 @@ def read_year_2100_df(slr_str='rsl', gauges_str='gauges', cities_str=None):
     ----------
     slr_str : str
         Relative sea level ('rsl'; default), geocentric sea level without the background component ('novlm'), or
-        contribution from vertical land motion ('vlm'; calculated as relative minus geocentric).
+        contribution from vertical land motion ('vlm'; calculated by this function as relative minus geocentric).
     gauges_str : str
         Use projections at gauges ('gauges'; default) or grid locations ('grid').
     cities_str : None or str
@@ -706,7 +706,7 @@ def get_year_2100_summary_df(slr_str='rsl', gauges_str='gauges', cities_str=None
     perc_exceed_ser = year_2100_df.gt(pd.Series(gmsl_dict)).mean() * 100  # % of locations that exceed global mean SLR
     summary_df.loc['Proportion above global mean SLR, %'] = perc_exceed_ser.round().astype(int)
     # Calculate correlation with high-end projection
-    r_ser = pd.Series()  # dictionary to hold correlation of each projection with high-end projection
+    r_ser = pd.Series()  # series to hold correlation of each projection with high-end projection
     for proj_str in ['low-end', 'low', 'central', 'high', 'high-end']:
         r = year_2100_df[proj_str].corr(year_2100_df['high-end'])
         r_ser[proj_str] = r
