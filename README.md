@@ -1,9 +1,9 @@
-# Analysis Code for _Worst-case projections of relative sea-level rise_ (d25a-rsl-fusion)
+# Analysis code and data for _Worst and best-case sea-level projections for coastal cities_ (d25a-rsl-fusion)
 
 ## Usage guidelines
 This repository accompanies the following manuscript:
 
-B. S. Grandey et al.,  **Worst-case projections of sea-level rise for cities**, in preparation.
+B. S. Grandey et al.,  **Worst and best-case sea-level projections for coastal cities**, in preparation.
 
 The manuscript serves as the primary reference.
 The Zenodo archive of this repository serves as a secondary reference.

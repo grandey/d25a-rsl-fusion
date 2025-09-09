@@ -1,0 +1,36 @@
+{
+  "title": "Analysis code for Worst and best-case sea-level projections for coastal cities (d25a-rsl-fusion)",
+  "creators": [
+    {
+      "orcid": "0000-0003-1442-0906",
+      "affiliation": "School of Physical and Mathematical Sciences, Nanyang Technological University, Singapore",
+      "name": "Grandey, Benjamin S."
+    }
+  ],
+  "contributors": [
+    {
+      "affiliation": "School of Energy and the Environment, City University of Hong Kong, Hong Kong",
+      "type": "Other",
+      "name": "Horton, Benjamin P."
+    },
+    {
+      "affiliation": "Department of Microelectronics, Faculty of Electrical Engineering, Mathematics, and Computer Science, Delft University of Technology (TU Delft), The Netherlands",
+      "type": "Other",
+      "name": "Dauwels, Justin"
+    },
+    {
+      "affiliation": "Earth Observatory of Singapore, Nanyang Technological University, Singapore",
+      "type": "Other",
+      "name": "Li, Tanghua"
+    },
+    {
+      "affiliation": "School of Physical and Mathematical Sciences, Nanyang Technological University, Singapore",
+      "type": "Other",
+      "name": "Chew, Lock Yue"
+    }
+  ],
+  "upload_type": "software",
+  "license": "MIT",
+  "access_right": "open",
+  "description": "<p>This repository accompanies the following manuscript:\nB. S. Grandey et al., Worst and best-case sea-level projections for coastal cities.\nFor further details, see README.md. For the most recent version of the repository, visit https://github.com/grandey/d25a-rsl-fusion/.</p>"
+}
