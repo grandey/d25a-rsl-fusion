@@ -46,7 +46,7 @@ plt.rcParams['ytick.right'] = True
 
 # Constants
 SCENARIO_LABEL_DICT = {'ssp126': 'SSP1-2.6', 'ssp585': 'SSP5-8.5', 'ssp245': 'SSP2-4.5'}  # names of scenarios
-SLR_LABEL_DICT = {'gmsl': 'Global mean SLR', 'rsl': 'Relative SLR', 'novlm': 'Geocentric SLR'}
+SLR_LABEL_DICT = {'gmsl': 'GMSL rise', 'rsl': 'RSL rise', 'novlm': 'Geocentric sea-level rise'}
 AR6_DIR = Path.cwd() / 'data_in' / 'ar6'  # directory containing AR6 input data
 PSMSL_DIR = Path.cwd() / 'data_in' / 'psmsl'  # directory containing PSMSL catalogue file
 WUP18_DIR = Path.cwd() / 'data_in' / 'wup18'  # directory containing World Urbanisation Prospects 2018 data
@@ -704,7 +704,7 @@ def get_year_2100_summary_df(slr_str='rsl', gauges_str='gauges', cities_str=None
         gmsl = read_time_series_da(slr_str='gmsl', proj_str=proj_str).sel(years=2100).data
         gmsl_dict[proj_str] = gmsl
     perc_exceed_ser = year_2100_df.gt(pd.Series(gmsl_dict)).mean() * 100  # % of locations that exceed global mean SLR
-    summary_df.loc['Proportion above global mean SLR, %'] = perc_exceed_ser.round().astype(int)
+    summary_df.loc['Proportion above GMSL rise, %'] = perc_exceed_ser.round().astype(int)
     # Calculate correlation with high-end projection
     r_ser = pd.Series()  # series to hold correlation of each projection with high-end projection
     for proj_str in ['low-end', 'low', 'central', 'high', 'high-end']:
@@ -1014,15 +1014,15 @@ def fig_year_2100_map(slr_str='rsl', gauges_str='grid', proj_str='high-end', dif
     else:
         extend = None
     if slr_str == 'rsl' and gauges_str == 'gauges':
-        label = f'Gauge-based {proj_str} relative SLR by 2100'
+        label = f'Gauge-based {proj_str} RSL rise by 2100'
     elif slr_str == 'rsl' and gauges_str == 'grid':
-        label = f'{proj_str.capitalize()} relative SLR by 2100 near cities'
+        label = f'{proj_str.capitalize()} RSL rise by 2100 near cities'
     elif slr_str == 'novlm' and gauges_str == 'grid':
-        label = f'{proj_str.capitalize()} geocentric SLR by 2100 near cities'
+        label = f'{proj_str.capitalize()} geocentric sea-level rise by 2100 near cities'
     elif slr_str == 'vlm' and gauges_str == 'grid':
-        label = f'VLM contribution to {proj_str} relative SLR by 2100 near cities'
+        label = f'VLM contribution to {proj_str} RSL rise by 2100 near cities'
     if diff:
-        label += ' minus global mean SLR, m'
+        label += ' minus GMSL rise, m'
     else:
         label += ', m'
     cbar = plt.colorbar(orientation='horizontal', extend=extend, pad=0.05, shrink=0.6, label=label)
@@ -1069,7 +1069,7 @@ def fig_year_2100_megacities(slr_str='rsl'):
             gmsl_da = read_time_series_da(slr_str='gmsl', proj_str=proj_str)
             gmsl = gmsl_da.sel(years=2100).data
             ax.axvline(gmsl, color=color, alpha=0.5, linestyle='--')
-            label = f'High-end global mean SLR'
+            label = f'High-end GMSL rise'
             ax.text(gmsl, year_2100_df.index.max()+0.3, label, rotation=90, va='top', ha='right',
                     color=color, alpha=0.8)
         # Plot SLR data for cities
@@ -1102,7 +1102,7 @@ def fig_y_vs_x(x_proj_str='high-end', x_gauges_str='grid', x_slr_str='novlm',
                cities_str='megacities', lims=(1.65, 2.75),
                cities_to_label=('Tokyo', 'Manila', 'Houston', 'Saint Petersburg')):
     """
-    Plot y (e.g. relative SLR) vs x (e.g. geocentric SLR) globally across megacities (or cities/locations).
+    Plot y (e.g. RSL rise) vs x (e.g. geocentric sea-level rise) globally across megacities (or cities/locations).
 
     Parameters
     ----------
@@ -1174,14 +1174,18 @@ def fig_y_vs_x(x_proj_str='high-end', x_gauges_str='grid', x_slr_str='novlm',
     ax.text(0.15, 0.90, f'r$^2$ = {r2:.2f}', ha='center', va='top', transform=ax.transAxes)
     # Label axes
     if x_gauges_str == 'grid':
-        xlabel_str = f'{x_proj_str.capitalize()} {SLR_LABEL_DICT[x_slr_str].split()[0].lower()} SLR by 2100, m'
+        xlabel_str = f'{x_proj_str.capitalize()} {SLR_LABEL_DICT[x_slr_str]} by 2100, m'
     elif x_gauges_str == 'gauges':
-        xlabel_str = f'Gauge-based {x_proj_str} {SLR_LABEL_DICT[x_slr_str].split()[0].lower()} SLR by 2100, m'
+        xlabel_str = f'Gauge-based {x_proj_str} {SLR_LABEL_DICT[x_slr_str]} by 2100, m'
     if y_gauges_str == 'grid':
-        ylabel_str = f'{y_proj_str.capitalize()} {SLR_LABEL_DICT[y_slr_str].split()[0].lower()} SLR by 2100, m'
+        ylabel_str = f'{y_proj_str.capitalize()} {SLR_LABEL_DICT[y_slr_str]} by 2100, m'
     elif y_gauges_str == 'gauges':
-        ylabel_str = f'Gauge-based {y_proj_str} {SLR_LABEL_DICT[y_slr_str].split()[0].lower()} SLR by 2100, m'
-    if x_gauges_str == 'gauges' or y_gauges_str == 'gauges':
+        ylabel_str = f'Gauge-based {y_proj_str} {SLR_LABEL_DICT[y_slr_str]} by 2100, m'
+    if x_slr_str == 'novlm':
+        xlabel_str = xlabel_str.replace('Geocentric', 'geocentric')
+    if y_slr_str == 'novlm':
+        ylabel_str = ylabel_str.replace('Geocentric', 'geocentric')
+    if 'gauges' in (x_gauges_str, y_gauges_str) or 'novlm' in (x_slr_str, y_slr_str):
         ax.set_xlabel(xlabel_str, fontsize='medium')
         ax.set_ylabel(ylabel_str, fontsize='medium')
     else:
@@ -1255,7 +1259,7 @@ def fig_country_stats(slr_str='rsl', min_count=4, high_end_only=True):
         gmsl = gmsl_da.sel(years=2100).data
         ax.axvline(gmsl, color=color, alpha=0.5, linestyle='--')
         if proj_str == 'high-end':
-            label = f'High-end global mean SLR'
+            label = f'High-end GMSL rise'
         else:
             label = None
         ax.text(gmsl+0.05, country_stats_df.index.min()-0.3, label,
@@ -1281,7 +1285,7 @@ def fig_country_stats(slr_str='rsl', min_count=4, high_end_only=True):
         if proj_str == 'high-end':
             ax.tick_params(labelbottom=True, labeltop=True, labelleft=False, labelright=True, right=True)
             if high_end_only:
-                ax.set_xlabel(f'High-end {SLR_LABEL_DICT[slr_str].split()[0].lower()} SLR by 2100, m')
+                ax.set_xlabel(f'High-end {SLR_LABEL_DICT[slr_str]} by 2100, m')
             else:
                 ax.set_xlabel(f'{SLR_LABEL_DICT[slr_str]} by 2100, m')
         else:
@@ -1328,7 +1332,7 @@ def fig_rsl_vs_vlm():
         ax.xaxis.set_major_locator(plticker.MultipleLocator(base=0.5))  # ticks at interval of 0.5 m
         ax.yaxis.set_major_locator(plticker.MultipleLocator(base=0.5))
         if i in (0, 3):
-            ax.set_ylabel('High-end relative SLR by 2100, m')  # y label
+            ax.set_ylabel('High-end RSL rise by 2100, m')  # y label
         if i in (3, 4, 5):
             ax.set_xlabel('VLM component, m')  # x label
     return fig, axs
