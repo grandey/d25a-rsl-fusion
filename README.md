@@ -65,8 +65,8 @@ bzip2 -d dist2coast.txt.bz2
 cd ../..
 ```
 
-### 3. Produce data for fusion, high-end, high, central, and low projections
-[**`data_d25a.ipynb`**](data_d25a.ipynb) uses the input data to produce the fusion, high-end, high, central, and low projections, which are saved to [**`data_d25a/`**](data_d25a/).
+### 3. Produce data for fusion, high-end, high, central, low, and low-end projections
+[**`data_d25a.ipynb`**](data_d25a.ipynb) uses the input data to produce the fusion, high-end, high, central, low, and low-end projections, which are saved to [**`data_d25a/`**](data_d25a/).
 
 ### 4. Analyse data and produce figures
 [**`figs_d25a.ipynb`**](figs_d25a.ipynb) analyses the projections and produces the figures.
