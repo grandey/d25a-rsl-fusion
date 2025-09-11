@@ -56,7 +56,7 @@ FIG_DIR = Path.cwd() / 'figs_d25a'  # directory in which to save figures
 F_NUM = itertools.count(1)  # main figures counter
 S_NUM = itertools.count(1)  # supplementary figures counter
 O_NUM = itertools.count(1)  # other figures counter
-MEGACITIES_LIST = [  # 48 largest coastal cities analysed by Tay et al. (2022)
+MEGACITIES_LIST = [  # 48 large coastal cities analysed by Tay et al. (2022)
         "Abidjan", "Ahmadabad", "Alexandria", "Bangkok", "Barcelona",
         "Buenos Aires", "Chennai", "Chittagong", "Dalian", "Dar es Salaam",
         "Dhaka", "Dongguan", "Foshan", "Fukuoka", "Guangzhou",
@@ -163,6 +163,41 @@ def get_coastal_cities_df():
     # Keep only cities within 120 km of coast and round
     cities_df = cities_df[cities_df['coast_distance_km'] <= 120]
     return cities_df
+
+
+@cache
+def get_total_population_df():
+    """
+    Return total population in (i) all cities, (ii) coastal cities, and (iii) 48 large coastal cities (Tay et al.)
+    for years available in World Urbanisation Prospects data.
+
+    Returns
+    -------
+    population_df : DataFrame
+        Dataframe of total population in billions for different years.
+    """
+    # Read World Urbanisation Prospects 2018 data
+    in_fn = WUP18_DIR / 'WUP2018-F12-Cities_Over_300K.xls'
+    wup18_df = pd.read_excel(in_fn, header=16, index_col='Index')
+    # Identify coastal cities
+    coastal_df = get_coastal_cities_df()
+    coastal_index = coastal_df.index  # index of coastal cities
+    wup18_df['Coastal'] = wup18_df.index.isin(coastal_index)
+    # Identify large coastal cities, with population above 5 million in 2025 and considered by Tay et al.
+    pattern = '|'.join([rf'{re.escape(city)}' for city in MEGACITIES_LIST])
+    wup18_df['Large'] = ((wup18_df['Coastal']) & (wup18_df[2025] >= 5000)
+                         & wup18_df['Urban Agglomeration'].str.contains(pattern))
+    # Identify years for which population data are available
+    pop_cols = [col for col in wup18_df.columns if isinstance(col, int)]
+    # Sum population across cities
+    population_df = pd.DataFrame(columns=['Count',] + pop_cols)
+    population_df.loc['All cities', 'Count'] = len(wup18_df)
+    population_df.loc['All cities', pop_cols] = wup18_df[pop_cols].sum(axis=0) / 1e6
+    population_df.loc['Coastal cities', 'Count'] = wup18_df['Coastal'].sum()
+    population_df.loc['Coastal cities', pop_cols] = wup18_df.loc[wup18_df['Coastal'], pop_cols].sum(axis=0) / 1e6
+    population_df.loc['Large coastal cities', 'Count'] = wup18_df['Large'].sum()
+    population_df.loc['Large coastal cities', pop_cols] = wup18_df.loc[wup18_df['Large'], pop_cols].sum(axis=0) / 1e6
+    return population_df
 
 
 @cache
