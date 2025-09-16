@@ -197,6 +197,8 @@ def get_total_population_df():
     population_df.loc['Coastal cities', pop_cols] = wup18_df.loc[wup18_df['Coastal'], pop_cols].sum(axis=0) / 1e6
     population_df.loc['Large coastal cities', 'Count'] = wup18_df['Large'].sum()
     population_df.loc['Large coastal cities', pop_cols] = wup18_df.loc[wup18_df['Large'], pop_cols].sum(axis=0) / 1e6
+    # Transpose
+    population_df = population_df.T
     return population_df
 
 
@@ -840,6 +842,37 @@ def get_gmsl_df():
             p = (fusion_da > gmsl_df.loc[proj_str, 'gmsl_2100']).mean(dim='quantiles').data
             gmsl_df.loc[proj_str, f'p_{scenario}'] = p.round(5) * 100
     return gmsl_df
+
+
+def fig_total_population_time_series():
+    """
+    Plot time series of total population for all cities, coastal cities, and 48 large coastal cities.
+
+    Returns
+    -------
+    fig : figure
+    ax: Axes
+    """
+    # Create figure and axes
+    fig, ax = plt.subplots(1, 1, figsize=(4, 3), tight_layout=True)
+    # Get total population data
+    population_df = get_total_population_df()
+    # Loop over column and plot
+    for column, color, linestyle in zip(population_df.columns, ['green', 'blue', 'red'], [':', '-', '--']):
+        ax.plot(population_df.drop(index='Count').index, population_df.drop(index='Count')[column],
+                color=color, linestyle=linestyle, label=column)
+    # Legend, axes etc
+    ax.legend(loc='upper left')
+    ax.set_xlabel('Year')
+    ax.set_ylabel('Population, billions')
+    ax.set_xlim(population_df.index[1], population_df.index[-1])
+    ax.set_ylim(0, 3.5)
+    ax.xaxis.set_major_locator(plticker.MultipleLocator(base=10))
+    ax.xaxis.set_minor_locator(plticker.MultipleLocator(base=5))
+    ax.yaxis.set_major_locator(plticker.MultipleLocator(base=0.5))
+    ax.yaxis.set_minor_locator(plticker.MultipleLocator(base=0.1))
+    ax.tick_params(axis='x', pad=7)
+    return fig, ax
 
 
 def fig_fusion_time_series(slr_str='rsl', gauges_str='gauges', loc_str='TANJONG_PAGAR'):
