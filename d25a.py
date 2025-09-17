@@ -229,8 +229,7 @@ def get_coastal_loc_df():
     gauge_loc_df['lon'] = gauge_ds['lon']
     gauge_loc_df['loc'] = gauge_ds['locations']
     gauge_loc_df = gauge_loc_df.set_index('loc').sort_index()  # set index and sort
-    # City locations in world urbanisation prospects data
-    in_fn = WUP18_DIR / 'WUP2018-F12-Cities_Over_300K.xls'
+    # Coastal city grid locations
     cities_df = get_coastal_cities_df().copy()
     cities_loc_df = pd.DataFrame()
     cities_loc_df['lat'] = cities_df['city_lat'].round().astype(int)  # round lat and lon
@@ -632,9 +631,17 @@ def write_year_2100_df(slr_str='rsl', gauges_str='gauges', cities_str=None):
                     for col in ['location', 'lat', 'lon', 'low-end', 'low', 'central', 'high', 'high-end']:
                         cities_df.loc[index, col] = temp_df.loc[0, col]
         # Keep only cities with projection data
-        n_tot = len(cities_df)
+        before_df = cities_df.copy()  # retain copy of cities_df before dropping any cities
         cities_df = cities_df.dropna(how='any')
-        print(f'{len(cities_df)} out of {n_tot} {cities_str} have a {gauges_str} {slr_str} projection')
+        print(f'{len(cities_df)} out of {len(before_df)} {cities_str} have a {gauges_str} {slr_str} projection')
+        # Identify specific cities that have been dropped due to no matching projection, if 20 or fewer
+        dropped_idx = before_df.index.difference(cities_df.index)
+        if not dropped_idx.empty and len(dropped_idx) <= 20:
+            if cities_str == 'megacities':
+                dropped_str = ', '.join(before_df.loc[dropped_idx, 'city_short'])
+            else:
+                dropped_str = ', '.join(before_df.loc[dropped_idx, 'city_name'])
+            print(f'No matching projection found for {dropped_str}')
         # Round data
         for col in ['city_lat', 'city_lon']:  # round to 2 d.p.
             cities_df[col] = cities_df[col].round(2)
