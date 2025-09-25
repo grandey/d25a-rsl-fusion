@@ -1,5 +1,7 @@
 # Analysis code and data for _Worst and best-case sea-level projections for coastal cities_ (d25a-rsl-fusion)
 
+[![DOI](https://zenodo.org/badge/907213343.svg)](https://zenodo.org/badge/latestdoi/907213343)
+
 ## Usage guidelines
 This repository accompanies the following manuscript:
 
