@@ -6,7 +6,6 @@ temp.*
 temp/
 .idea
 .DS_Store
-*.nc
 *.pdf
 *pdf
 *~
