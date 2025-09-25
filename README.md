@@ -8,7 +8,24 @@ B. S. Grandey et al.,  **Worst and best-case sea-level projections for coastal c
 The manuscript serves as the primary reference.
 The Zenodo archive of this repository serves as a secondary reference.
 
+## Data files containing sea-level projections
+The sea-level projections are contained in [**`data_d25a/`**](data_d25a/).  The values are in metres, relative to the IPCC AR6 baseline (1995–2014).
+
+### Contents
+1. [**`time_series/`**](data_d25a/time_series/) – NetCDF time series for 2020, 2030, ..., 2100, for the locations in [**`locations_info_d25a.csv`**](data_d25a/time_series/locations_info_d25a.csv) (grid boxes with coastal cities, alongside tide gauge locations).
+2. [**`year_2100/`**](data_d25a/year_2100/) – CSV summaries for 2100.
+
+### File-name conventions
+- The prefix `rsl` refers to relative sea-level rise, `novlm` refers to geocentric sea-level rise (i.e. no VLM component), and `gmsl` refers to global mean sea-level rise. 
+- In [**`year_2100/`**](data_d25a/year_2100/), `grid` refers to 1°×1° grid locations (preferred), while `gauges` refers to tide gauge locations. 
+- In the [**`time_series/`**](data_d25a/time_series/), `fusion-ssp585` and `fusion-ssp126` refer to full probabilistic fusion projections under SSP5-8.5 and SSP1-2.6, while `high-end`, `high`, `central`, `low`, and `low-end` refer to the projections described in the manuscript.
+
+#### Primary projections of relative sea-level rise by 2100
+- [**`rsl_grid_megacities_2100_d25a.csv`**](data_d25a/year_2100/rsl_grid_megacities_2100_d25a.csv) – projections for 48 large coastal cities.
+- [**`rsl_grid_cities_2100_d25a.csv`**](data_d25a/year_2100/rsl_grid_cities_2100_d25a.csv) – projections for all coastal cities.
+
 ## Workflow
+The following workflow can be used to reproduce and analyse the projections.
 
 ### 1. Create environment
 To create a _conda_ environment with the necessary software dependencies, use the [**`environment.yml`**](environment.yml) file:
