@@ -505,6 +505,7 @@ def write_locations_info_df():
     locations_info_df = locations_info_df.set_index('location')
     # Save to CSV
     out_dir = DATA_DIR / 'time_series'
+    out_dir.mkdir(parents=True, exist_ok=True)
     out_fn = out_dir / 'locations_info_d25a.csv'
     print(f'Writing time_series/{out_fn.name} ({len(locations_info_df)} locations)')
     locations_info_df.to_csv(out_fn)
