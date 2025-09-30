@@ -1,11 +1,11 @@
-# Analysis code and data for _Worst and best-case sea-level projections for coastal cities_ (d25a-rsl-fusion)
+# Analysis code and data for _Worst- and best-case sea-level projections for coastal cities_ (d25a-rsl-fusion)
 
 [![DOI](https://zenodo.org/badge/907213343.svg)](https://zenodo.org/badge/latestdoi/907213343)
 
 ## Usage guidelines
 This repository accompanies the following manuscript:
 
-B. S. Grandey et al.,  **Worst and best-case sea-level projections for coastal cities**, in preparation.
+B. S. Grandey et al.,  **Worst- and best-case sea-level projections for coastal cities**, in preparation.
 
 The manuscript serves as the primary reference.
 The Zenodo archive of this repository serves as a secondary reference.
