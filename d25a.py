@@ -481,7 +481,7 @@ def write_locations_info_df():
     Notes
     -----
     In contrast to get_coastal_loc_df(), which provides input to get_sl_qfs(), this function provides info about
-    locations returned by qfs_da().
+    locations returned by get_sl_qfs().
     """
     # Create DataFrame to hold information about locations
     locations_info_df = pd.DataFrame(columns=['location', 'lat', 'lon', 'gauge_id', 'gauge_name', 'gauge_country'])
