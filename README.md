@@ -33,10 +33,17 @@ The following workflow can be used to reproduce and analyse the projections.
 To create a _conda_ environment with the necessary software dependencies, use the [**`environment.yml`**](environment.yml) file:
 
 ```
-conda env create --file environment.yml
+mamba env create -f environment.yml
 ```
 
-The analysis has been performed within this environment on _macOS 13_ (arm64).
+The analysis has been performed within this `d25a-rsl-fusion` environment on _macOS 26_ (arm64).
+
+If you do not have a separate _Jupyter_ server, you can install _JupyterLab_ in this environment:
+
+```
+mamba activate d25a-rsl-fusion 
+mamba install jupyterlab
+```
 
 ### 2. Download input data
 Input data from the [IPCC AR6 Sea Level Projections](https://doi.org/10.5281/zenodo.6382554), the [IPCC AR6 Relative Sea Level Projection Distributions](https://doi.org/10.5281/zenodo.5914932), and the [IPCC AR6 Relative Sea Level Projections without Background Component](https://doi.org/10.5281/zenodo.5967269) repositories can be downloaded as follows:

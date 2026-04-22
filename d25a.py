@@ -3,7 +3,7 @@ d25a:
     Functions that support the analysis contained in the d25a-rsl-fusion repository.
 
 Author:
-    Benjamin S. Grandey, 2024–2025.
+    Benjamin S. Grandey, 2024–2026.
 
 Notes:
     Much of this code is based on the d23a-fusion repository, https://doi.org/10.5281/zenodo.13627262.

@@ -1,15 +1,13 @@
-# To create, use conda env create:
-# conda env create --file environment.yml
-# To update, recreate from scratch (due to issues with --prune option):
-# conda env create --file environment.yml --force
+# To create, use mamba (or conda):
+# mamba env create -f environment.yml
+# To recreate from scratch, remove previously created environment first:
+# mamba remove -n d25a-rsl-fusion --all
 name: d25a-rsl-fusion
 channels:
   - conda-forge
-  - defaults
 dependencies:
-  - python=3.10
-  - jupyterlab
-  - notebook
+  - python=3.12
+  - ipykernel
   - numpy
   - pandas
   - xlrd
