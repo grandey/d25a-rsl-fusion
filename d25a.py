@@ -362,9 +362,15 @@ def get_sl_qfs(workflow='fusion_1e+2e', slr_str='rsl', scenario='ssp585'):
 
 
 @cache
-def get_fusion_weights():
+def get_fusion_weights(pref_percs=(0.10, 0.90)):
     """
     Return trapezoidal weighting function for fusion.
+
+    Parameters
+    ----------
+    pref_percs : tuple
+        Percentile bounds for the preferred workflow / medium confidence mean.
+        Default is (0.10, 0.90), differing from Grandey et al. (2024).
 
     Returns
     -------
@@ -375,16 +381,16 @@ def get_fusion_weights():
     qfs_da = get_sl_qfs(workflow='wf_1e', slr_str='gmsl', scenario='ssp585').copy()
     w_da = qfs_da.sel(years=2100).squeeze()
     # Update data to follow trapezoidal weighting function, with weights depending on probability
-    da1 = w_da.sel(quantiles=slice(0, 0.169999)).copy()
-    da1[:] = da1.quantiles / 0.17
-    da2 = w_da.sel(quantiles=slice(0.17, 0.83)).copy()
+    da1 = w_da.sel(quantiles=slice(0, (pref_percs[0] - 1e-10))).copy()
+    da1[:] = da1.quantiles / pref_percs[0]
+    da2 = w_da.sel(quantiles=slice(pref_percs[0], pref_percs[1])).copy()
     da2[:] = 1.
-    da3 = w_da.sel(quantiles=slice(0.830001, 1)).copy()
-    da3[:] = (1 - da3.quantiles) / 0.17
+    da3 = w_da.sel(quantiles=slice((pref_percs[1] + 1e-10), 1)).copy()
+    da3[:] = (1 - da3.quantiles) / (1 - pref_percs[1])
     w_da = xr.concat([da1, da2, da3], dim='quantiles')
     # Rename
     w_da = w_da.rename('weights')
-    return w_da
+    return w_da.copy()
 
 
 def write_time_series_da(slr_str='rsl', proj_str='fusion-ssp585'):
@@ -1164,7 +1170,7 @@ def fig_year_2100_megacities(slr_str='rsl'):
     ax.set_yticks(year_2100_df.index)
     ax.set_yticklabels(yticklabels)
     ax.set_ylim(year_2100_df.index.min() - 0.5, year_2100_df.index.max() + 0.5)
-    ax.set_xlim(-0.5, 3.2)
+    ax.set_xlim(-0.5, 3.0)
     ax.xaxis.set_major_locator(plticker.MultipleLocator(base=0.5))
     ax.xaxis.set_minor_locator(plticker.MultipleLocator(base=0.1))
     ax.tick_params(labelbottom=True, labeltop=False, labelleft=True, labelright=False)
