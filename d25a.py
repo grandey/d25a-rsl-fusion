@@ -1046,24 +1046,17 @@ def fig_year_2100_map(slr_str='rsl', gauges_str='grid', proj_str='high-end', dif
             megacities_df[proj_str] = megacities_df[proj_str] - gmsl_df['gmsl_2100'][proj_str]
         megacities_df = megacities_df.sort_values(by='population_2050_1000s')  # plot larger cities last
         plt.scatter(megacities_df['lon'], megacities_df['lat'], c=megacities_df[proj_str],
-                    s=20, marker='o', edgecolors='1.', linewidths=0.5, vmin=vmin, vmax=vmax, cmap=cmap, zorder=4)
+                    s=30, marker='o', edgecolors='1.', linewidths=0.5, vmin=vmin, vmax=vmax, cmap=cmap, zorder=4)
         # Label megacities
         offset_dict = {  # manually tune position of labels
-            'Tokyo': (30, 10), 'Nagoya': (40, 0), 'Osaka': (40, -11), 'Fukuoka': (58, -20), 'Seoul': (50, 30),
-            'Dalian': (25, 55), 'Tianjin': (0, 55), 'Qingdao': (10, 70),
-            'Nanjing': (-30, 80), 'Shanghai': (-55, 72), 'Suzhou': (-65, 62), 'Hangzhou': (-75, 55),
-            'Dongguan': (-97, 80), 'Foshan': (-102, 70), 'Guangzhou': (-115, 60), 'Hong Kong': (-120, 50),
-            'Dhaka': (-65, 35), 'Chittagong': (-80, 30), 'Karachi': (-20, 10),
-            'Manila': (30, 15), 'Ho Chi Minh City': (80, 7),
-            'Jakarta': (20, -25), 'Singapore': (-5, -32), 'Bangkok': (-15, -50), 'Yangon': (-17, -45),
-            'Kolkata': (-20, -70), 'Chennai': (-25, -60),
-            'Mumbai': (-25, -60), 'Surat': (-35, -50), 'Ahmadabad': (-50, -38),
-            'Dar es Salaam': (-10, -10), 'Luanda': (-25, -15), 'Lagos': (-15, -33), 'Abidjan': (-20, -15),
-            'Alexandria': (-5, -35), 'Istanbul': (-20, -40), 'Barcelona': (0, -25),
-            'London': (10, 30), 'Saint Petersburg': (15, -15),
-            'New York': (50, 5), 'Philadelphia': (50, -5), 'Washington, D.C.': (45, -15), 'Miami': (35, -5),
-            'Houston': (-10, 20), 'Los Angeles': (-20, -20),
-            'Lima': (-20, -15), 'Buenos Aires': (20, -20), 'Rio de Janeiro': (20, -20)
+            'Manila': (35, 10), 'Osaka': (35, -15), 'Tokyo': (35, 5), 'Seoul': (5, 30),
+            'Shanghai': (-10, 70), 'Shenzhen': (-20, 75), 'Guangzhou': (-45, 60), 'Ho Chi Minh City': (-60, 65),
+            'Jakarta': (-10, -20), 'Kuala Lumpur': (-35, -23), 'Bangkok': (-50, -31),
+            'Kolkata': (-25, 20), 'Chennai': (-35, -13), 'Mumbai': (-20, -10), 'Karachi': (-25, 20),
+            'Dar es Salaam': (-25, 30), 'Luanda': (-30, -15), 'Lagos': (-15, -25),
+            'Istanbul': (-25, 18),  'London': (-5, 35),
+            'New York City': (35, -15), 'Los Angeles': (-30, -20),
+            'Lima': (-20, -15), 'Buenos Aires': (35, -20), 'São Paulo': (30, -20)
         }
         for _, row in megacities_df.iterrows():
             city_short = row['city_short']
@@ -1073,7 +1066,7 @@ def fig_year_2100_map(slr_str='rsl', gauges_str='grid', proj_str='high-end', dif
                 offset = (-20, -15)
                 print(f'{city_short}: using default offset {offset}; {row["lon"]}, {row["lat"]}')
             ax.annotate(city_short, xy=(row['lon'], row['lat']),
-                        xytext=offset, textcoords='offset points', ha='center', va='center', fontsize='small',
+                        xytext=offset, textcoords='offset points', ha='center', va='center', fontsize='medium',
                         bbox=dict(boxstyle='round,pad=0', fc='none', ec='none'),  # reduce text padding
                         arrowprops=dict(arrowstyle='-', color='k', lw=0.5, alpha=0.5), zorder=5)
     # Colorbar
