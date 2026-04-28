@@ -6,7 +6,7 @@ Author:
     Benjamin S. Grandey, 2024–2026.
 
 Notes:
-    Much of this code is based on the d23a-fusion repository, https://doi.org/10.5281/zenodo.13627262.
+    Some of this code is based on the d23a-fusion repository, https://doi.org/10.5281/zenodo.13627262.
 """
 
 
@@ -19,7 +19,6 @@ import matplotlib.ticker as plticker
 import numpy as np
 import pandas as pd
 from pathlib import Path
-import re
 from scipy import stats, interpolate
 import seaborn as sns
 from watermark import watermark
@@ -49,24 +48,13 @@ SCENARIO_LABEL_DICT = {'ssp126': 'SSP1-2.6', 'ssp585': 'SSP5-8.5', 'ssp245': 'SS
 SLR_LABEL_DICT = {'gmsl': 'GMSL rise', 'rsl': 'RSL rise', 'novlm': 'Geocentric sea-level rise'}
 AR6_DIR = Path.cwd() / 'data_in' / 'ar6'  # directory containing AR6 input data
 PSMSL_DIR = Path.cwd() / 'data_in' / 'psmsl'  # directory containing PSMSL catalogue file
-WUP18_DIR = Path.cwd() / 'data_in' / 'wup18'  # directory containing World Urbanisation Prospects 2018 data
+WUP25_DIR = Path.cwd() / 'data_in' / 'wup25'  # directory containing World Urbanization Prospects 2025 data
 NASA_DIR = Path.cwd() / 'data_in' / 'nasa'  # directory containing the NASA Distance to the Nearest Coast data
 DATA_DIR = Path.cwd() / 'data_d25a'  # directory containing projections produced by data_d25a.ipynb
 FIG_DIR = Path.cwd() / 'figs_d25a'  # directory in which to save figures
 F_NUM = itertools.count(1)  # main figures counter
 S_NUM = itertools.count(1)  # supplementary figures counter
 O_NUM = itertools.count(1)  # other figures counter
-MEGACITIES_LIST = [  # 48 large coastal cities analysed by Tay et al. (2022)
-        "Abidjan", "Ahmadabad", "Alexandria", "Bangkok", "Barcelona",
-        "Buenos Aires", "Chennai", "Chittagong", "Dalian", "Dar es Salaam",
-        "Dhaka", "Dongguan", "Foshan", "Fukuoka", "Guangzhou",
-        "Hangzhou", "Ho Chi Minh City", "Hong Kong", "Houston", "Istanbul",
-        "Jakarta", "Karachi", "Kolkata", "Lagos", "Lima",
-        "London", "Los Angeles", "Luanda", "Manila", "Miami",
-        "Mumbai", "Nagoya", "Nanjing", "New York", "Osaka",
-        "Philadelphia", "Qingdao", "Rio de Janeiro", "Saint Petersburg", "Seoul",
-        "Shanghai", "Singapore", "Surat", "Suzhou", "Tianjin",
-        "Tokyo", "Washington, D.C.", "Yangon"]
 
 
 def get_watermark():
@@ -127,28 +115,32 @@ def get_gauge_info(gauge='TANJONG_PAGAR'):
 @cache
 def get_coastal_cities_df():
     """
-    Return cities within 120 km of the coast, using World Urbanisation Prospects 2018 city data.
+    Return DEGURBA cities within 100 km of the coast, using World Urbanization Prospects 2025 city data.
 
     Returns
     -------
     cities_df : DataFrame
-        Dataframe of city_index, city_name, city_country, city_lat, city_lon, population_2025_1000s, coast_distance_km
+        Dataframe of city_index, city_name, city_country, city_lat, city_lon, population_2025_1000s,
+        population_2050_1000s, megacity_2050, coast_distance_km
 
-    Note
-    ----
-    The coast distance is based on linear interpolation of the Distance to the Nearest Coast data, using the lat and lon
-    of each city. The extent of the city is not explicitly considered. The threshold of 120 km is chosen so that all
-    the megacities of Tay et al. (2022) are included: Nanjing is calculated to be 120 km here.
+    Notes
+    -----
+    1. The coast distance is based on linear interpolation of the Distance to the Nearest Coast data, using the lat and
+       lon of each city. The extent of the city is not explicitly considered.
+    2. The megacity_2050 flag is based on projected year-2050 population of at least 10 million.
     """
-    # Read World Urbanisation Prospects 2018 data
-    in_fn = WUP18_DIR / 'WUP2018-F12-Cities_Over_300K.xls'
-    cities_df = pd.read_excel(in_fn, header=16, usecols='A,C,E,G,H,X', index_col=None)
+    # Read World Urbanization Prospects 2025 data
+    in_fn = WUP25_DIR / 'WUP2025-F21-DEGURBA-Cities_Pop.xlsx'
+    cities_df = pd.read_excel(in_fn, sheet_name='Data', usecols='A,B,H,J,K,BJ,CI', index_col=None)
     # Rename and reorder columns
-    cities_df = cities_df.rename(columns={'Index': 'city_index', 'Country or area': 'city_country',
-                                          'Urban Agglomeration': 'city_name', 'Latitude': 'city_lat',
-                                          'Longitude': 'city_lon', 2025: 'population_2025_1000s'})
+    cities_df = cities_df.rename(columns={'Index': 'city_index', 'Location': 'city_country', 'City_Name': 'city_name',
+                                          'PWCent_Latitude': 'city_lat', 'PWCent_Longitude': 'city_lon',
+                                          '2025': 'population_2025_1000s', '2050': 'population_2050_1000s'})
     cities_df = cities_df.set_index('city_index')
-    cities_df = cities_df[['city_name', 'city_country', 'city_lat', 'city_lon', 'population_2025_1000s']]
+    cities_df = cities_df[['city_name', 'city_country', 'city_lat', 'city_lon',
+                           'population_2025_1000s', 'population_2050_1000s']]
+    # Identify future megacities, with projected population of at least 10 million by 2050
+    cities_df['megacity_2050'] = cities_df['population_2050_1000s'] >= 10000
     # Read Distance to the Nearest Coast data (https://oceancolor.gsfc.nasa.gov/resources/docs/distfromcoast/)
     in_fn = NASA_DIR / 'dist2coast.txt'
     dist_df = pd.read_csv(in_fn, sep='\t', names=['lon', 'lat', 'distance'])
@@ -160,43 +152,41 @@ def get_coastal_cities_df():
     cities_coords = cities_df[['city_lat', 'city_lon']].to_numpy()
     cities_df['coast_distance_km'] = interp(cities_coords)
     cities_df['coast_distance_km'] = cities_df['coast_distance_km'].round().astype(int)
-    # Keep only cities within 120 km of coast and round
-    cities_df = cities_df[cities_df['coast_distance_km'] <= 120]
+    # Keep only cities within 100 km of coast
+    cities_df = cities_df[cities_df['coast_distance_km'] <= 100]
     return cities_df
 
 
 @cache
 def get_total_population_df():
     """
-    Return total population in (i) all cities, (ii) coastal cities, and (iii) 48 large coastal cities (Tay et al.)
-    for years available in World Urbanisation Prospects data.
+    Return time series of total population in (i) all cities, (ii) coastal cities, and (iii) future coastal megacities.
 
     Returns
     -------
     population_df : DataFrame
         Dataframe of total population in billions for different years.
     """
-    # Read World Urbanisation Prospects 2018 data
-    in_fn = WUP18_DIR / 'WUP2018-F12-Cities_Over_300K.xls'
-    wup18_df = pd.read_excel(in_fn, header=16, index_col='Index')
+    # Read World Urbanization Prospects 2025 data
+    in_fn = WUP25_DIR / 'WUP2025-F21-DEGURBA-Cities_Pop.xlsx'
+    wup25_df = pd.read_excel(in_fn, sheet_name='Data', index_col='Index')
     # Identify coastal cities
     coastal_df = get_coastal_cities_df()
     coastal_index = coastal_df.index  # index of coastal cities
-    wup18_df['Coastal'] = wup18_df.index.isin(coastal_index)
-    # Identify large coastal cities, with population above 5 million in 2025 and considered by Tay et al.
-    pattern = '|'.join([rf'{re.escape(city)}' for city in MEGACITIES_LIST])
-    wup18_df['Large'] = ((wup18_df['Coastal']) & (wup18_df[2025] >= 5000)
-                         & wup18_df['Urban Agglomeration'].str.contains(pattern))
-    # Identify years for which population data are available
-    pop_cols = [col for col in wup18_df.columns if isinstance(col, int)]
-    # Sum population across cities
+    wup25_df['coastal'] = wup25_df.index.isin(coastal_index)
+    # Identify coastal megacities
+    coastal_mega_index = coastal_df[coastal_df['megacity_2050']].index
+    wup25_df['coastal_mega'] = wup25_df.index.isin(coastal_mega_index)
+    # Years for which population data are available
+    pop_cols = [col for col in wup25_df.columns if str(col).isdigit()]
+    # Sum population across cities; implicitly treat NaNs as zero
     population_df = pd.DataFrame(columns=['Count',] + pop_cols)
-    population_df.loc['All cities', 'Count'] = len(wup18_df)
-    population_df.loc['All cities', pop_cols] = wup18_df[pop_cols].sum(axis=0) / 1e6
-    population_df.loc['Coastal cities', 'Count'] = wup18_df['Coastal'].sum()
-    population_df.loc['Coastal cities', pop_cols] = wup18_df.loc[wup18_df['Coastal'], pop_cols].sum(axis=0) / 1e6
-    population_df.loc['Large coastal cities', 'Count'] = wup18_df['Large'].sum()
-    population_df.loc['Large coastal cities', pop_cols] = wup18_df.loc[wup18_df['Large'], pop_cols].sum(axis=0) / 1e6
+    population_df.loc['All cities', 'Count'] = len(wup25_df)
+    population_df.loc['All cities', pop_cols] = wup25_df[pop_cols].sum(axis=0) / 1e6
+    population_df.loc['Coastal cities', 'Count'] = wup25_df['coastal'].sum()
+    population_df.loc['Coastal cities', pop_cols] = wup25_df.loc[wup25_df['coastal'], pop_cols].sum(axis=0) / 1e6
+    population_df.loc['Coastal megacities', 'Count'] = wup25_df['coastal_mega'].sum()
+    population_df.loc['Coastal megacities', pop_cols] = wup25_df.loc[wup25_df['coastal_mega'], pop_cols].sum(axis=0) / 1e6
     # Transpose
     population_df = population_df.T
     return population_df
@@ -578,30 +568,27 @@ def write_year_2100_df(slr_str='rsl', gauges_str='gauges', cities_str=None):
             raise ValueError(f'Invalid cities_str: {cities_str}')
         # Get coastal cities data
         cities_df = get_coastal_cities_df().copy()
-        # If megacities, then only include cities identified by Tay et al. (2022)
+        # If megacities, then only include cities with the megacity_2050 flag & identify short name
         if cities_str == 'megacities':
-            cities_df = cities_df.loc[cities_df['population_2025_1000s'] >= 5000]  # all have population >= 5 million
-            pattern = '|'.join([rf'{re.escape(city)}' for city in MEGACITIES_LIST])
-            cities_df = cities_df.loc[cities_df['city_name'].str.contains(pattern)]  # keep only Tay et al. cities
-            for city_index in cities_df.index:  # add 'city_short' column containing short name of city
-                city_name = cities_df.loc[city_index, 'city_name']
-                for city_short in MEGACITIES_LIST:
-                    if city_short in city_name:
-                        cities_df.loc[city_index, 'city_short'] = city_short
-                        break
+            cities_df = cities_df.loc[cities_df['megacity_2050']]
+            for city_index in cities_df.index:
+                city_short = cities_df.loc[city_index, 'city_name']
+                if '(' in city_short:
+                    city_short = city_short.split('(')[-1].rstrip(')')
+                cities_df.loc[city_index, 'city_short'] = city_short
         # If megacities, then identify region based on country
         if cities_str == 'megacities':
             for city_index in cities_df.index:
                 country = cities_df.loc[city_index, 'city_country']
-                if country in ['Japan', 'Republic of Korea', 'China', 'China, Hong Kong SAR']:
+                if country in ['Japan', 'Republic of Korea', 'China']:
                     region = 'East Asia'
-                elif country in ['Philippines', 'Viet Nam', 'Thailand', 'Myanmar', 'Indonesia', 'Singapore']:
+                elif country in ['Philippines', 'Viet Nam', 'Thailand', 'Indonesia', 'Malaysia']:
                     region = 'Southeast Asia'
                 elif country in ['Bangladesh', 'India', 'Pakistan']:
                     region = 'South Asia'
-                elif country in ["Côte d'Ivoire", 'Egypt', 'Angola', 'Nigeria', 'United Republic of Tanzania']:
+                elif country in ['Angola', 'Nigeria', 'United Republic of Tanzania']:
                     region = 'Africa'
-                elif country in ['Spain', 'United Kingdom', 'Russian Federation', 'Turkey']:
+                elif country in ['United Kingdom', 'Türkiye']:
                     region = 'Europe'
                 elif country in ['United States of America',]:
                     region = 'North America'
@@ -652,13 +639,16 @@ def write_year_2100_df(slr_str='rsl', gauges_str='gauges', cities_str=None):
         # Round data
         for col in ['city_lat', 'city_lon']:  # round to 2 d.p.
             cities_df[col] = cities_df[col].round(2)
-        for col in ['population_2025_1000s', 'location', 'gauge_id', 'gauge_distance_km']:  # round to nearest integer
+        for col in ['population_2025_1000s', 'population_2050_1000s',
+                    'location', 'gauge_id', 'gauge_distance_km']:  # round to nearest integer
             try:
                 cities_df[col] = cities_df[col].round(0).astype('Int64')
             except KeyError:
                 pass
         # cities_df replaces year_2100_df
         year_2100_df = cities_df.copy()
+        # Drop megacity_2050 flag
+        year_2100_df = year_2100_df.drop(columns=['megacity_2050'])
     # Save to CSV
     out_dir = DATA_DIR / 'year_2100'
     if not out_dir.exists():
@@ -860,7 +850,7 @@ def get_gmsl_df():
 
 def fig_total_population_time_series():
     """
-    Plot time series of total population for all cities, coastal cities, and 48 large coastal cities.
+    Plot time series of total population for all cities, coastal cities, and coastal megacities.
 
     Returns
     -------
@@ -874,17 +864,17 @@ def fig_total_population_time_series():
     # Loop over column and plot
     for column, color, linestyle in zip(population_df.columns, ['green', 'blue', 'red'], [':', '-', '--']):
         ax.plot(population_df.drop(index='Count').index, population_df.drop(index='Count')[column],
-                color=color, linestyle=linestyle, label=column)
+                color=color, linestyle=linestyle, label=f'{column} (n={population_df.loc["Count", column]})')
     # Legend, axes etc
     ax.legend(loc='upper left')
     ax.set_xlabel('Year')
     ax.set_ylabel('Population, billions')
     ax.set_xlim(population_df.index[1], population_df.index[-1])
-    ax.set_ylim(0, 3.5)
+    ax.set_ylim(0, 7)
     ax.xaxis.set_major_locator(plticker.MultipleLocator(base=10))
     ax.xaxis.set_minor_locator(plticker.MultipleLocator(base=5))
-    ax.yaxis.set_major_locator(plticker.MultipleLocator(base=0.5))
-    ax.yaxis.set_minor_locator(plticker.MultipleLocator(base=0.1))
+    ax.yaxis.set_major_locator(plticker.MultipleLocator(base=1.0))
+    ax.yaxis.set_minor_locator(plticker.MultipleLocator(base=0.5))
     ax.tick_params(axis='x', pad=7)
     return fig, ax
 
@@ -1054,7 +1044,7 @@ def fig_year_2100_map(slr_str='rsl', gauges_str='grid', proj_str='high-end', dif
         megacities_df = read_year_2100_df(slr_str=slr_str, gauges_str=gauges_str, cities_str='megacities').copy()
         if diff:
             megacities_df[proj_str] = megacities_df[proj_str] - gmsl_df['gmsl_2100'][proj_str]
-        megacities_df = megacities_df.sort_values(by='population_2025_1000s')  # plot larger cities last
+        megacities_df = megacities_df.sort_values(by='population_2050_1000s')  # plot larger cities last
         plt.scatter(megacities_df['lon'], megacities_df['lat'], c=megacities_df[proj_str],
                     s=20, marker='o', edgecolors='1.', linewidths=0.5, vmin=vmin, vmax=vmax, cmap=cmap, zorder=4)
         # Label megacities
@@ -1116,7 +1106,7 @@ def fig_year_2100_map(slr_str='rsl', gauges_str='grid', proj_str='high-end', dif
 
 def fig_year_2100_megacities(slr_str='rsl'):
     """
-    Plot high-end, high, central, and low year-2100 SLR projections for megacities.
+    Plot high-end, high, central, low, and low-end year-2100 SLR projections for megacities.
 
     Parameters
     ----------
@@ -1129,7 +1119,7 @@ def fig_year_2100_megacities(slr_str='rsl'):
     ax: Axes
     """
     # Create figure and axes
-    fig, ax = plt.subplots(1, 1, figsize=(7, 9), tight_layout=True)
+    fig, ax = plt.subplots(1, 1, figsize=(7, 7), tight_layout=True)
     # Get SLR projections for megacities
     year_2100_df = read_year_2100_df(slr_str=slr_str, gauges_str='grid', cities_str='megacities')
     year_2100_df = year_2100_df.dropna()
@@ -1160,8 +1150,7 @@ def fig_year_2100_megacities(slr_str='rsl'):
     # Legend
     ax.legend(loc='lower right', title=None)
     # Shorten some country names and combine with short city names to use as y-axis labels
-    country_short_map = {'China, Hong Kong SAR': 'China', 'Russian Federation': 'Russia',
-                         'United Kingdom': 'UK', 'United Republic of Tanzania': 'Tanzania',
+    country_short_map = {'United Kingdom': 'UK', 'United Republic of Tanzania': 'Tanzania',
                          'United States of America': 'USA'}
     year_2100_df['city_country'] = year_2100_df['city_country'].map(country_short_map
                                                                     ).fillna(year_2100_df['city_country'])
@@ -1182,7 +1171,7 @@ def fig_year_2100_megacities(slr_str='rsl'):
 def fig_y_vs_x(x_proj_str='high-end', x_gauges_str='grid', x_slr_str='novlm',
                y_proj_str='high-end', y_gauges_str='grid', y_slr_str='rsl',
                cities_str='megacities', lims=(1.65, 2.75),
-               cities_to_label=('Tokyo', 'Manila', 'Houston', 'Saint Petersburg')):
+               cities_to_label=('Tokyo', 'Manila')):
     """
     Plot y (e.g. RSL rise) vs x (e.g. geocentric sea-level rise) globally across megacities (or cities/locations).
 
@@ -1205,7 +1194,7 @@ def fig_y_vs_x(x_proj_str='high-end', x_gauges_str='grid', x_slr_str='novlm',
     lims : None or tuple
         x- and y-axis limits. Default is (1.65, 2.75).
     cities_to_label : None or tuple
-        Names of cities to label (if megacities). Default is ('Tokyo', 'Manila', 'Houston', 'Saint Petersburg').
+        Names of cities to label (if megacities). Default is ('Tokyo', 'Manila').
 
     Returns
     -------
@@ -1232,8 +1221,8 @@ def fig_y_vs_x(x_proj_str='high-end', x_gauges_str='grid', x_slr_str='novlm',
         for region_str in ['East Asia', 'Southeast Asia', 'South Asia',  # manually specify preferred order of regions
                            'Africa', 'Europe', 'North America', 'South America']:
             temp_df = xy_df[xy_df['city_region_x'] == region_str]  # select data for region
-            temp_df = temp_df.sort_values('population_2025_1000s_x', ascending=False)  # plot smaller points last
-            s = temp_df['population_2025_1000s_x'] * 0.002  # size depends on population
+            temp_df = temp_df.sort_values('population_2050_1000s_x', ascending=False)  # plot smaller points last
+            s = temp_df['population_2050_1000s_x'] * 0.002  # size depends on projected 2050 population
             ax.scatter(x=temp_df[f'{x_proj_str}_x'], y=temp_df[f'{y_proj_str}_y'], s=s, label=region_str, alpha=0.5)
         # Legend
         ax.legend(loc='lower right', title=None, fontsize='medium')

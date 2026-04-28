@@ -23,7 +23,7 @@ The sea-level projections are contained in [**`data_d25a/`**](data_d25a/).  The 
 - In the [**`time_series/`**](data_d25a/time_series/), `fusion-ssp585` and `fusion-ssp126` refer to full probabilistic fusion projections under SSP5-8.5 and SSP1-2.6, while `high-end`, `high`, `central`, `low`, and `low-end` refer to the projections described in the manuscript.
 
 #### Primary projections of relative sea-level rise by 2100
-- [**`rsl_grid_megacities_2100_d25a.csv`**](data_d25a/year_2100/rsl_grid_megacities_2100_d25a.csv) – projections for 48 large coastal cities.
+- [**`rsl_grid_megacities_2100_d25a.csv`**](data_d25a/year_2100/rsl_grid_megacities_2100_d25a.csv) – projections for coastal megacities, with projected 2050 population of at least 10 million.
 - [**`rsl_grid_cities_2100_d25a.csv`**](data_d25a/year_2100/rsl_grid_cities_2100_d25a.csv) – projections for all coastal cities.
 
 ## Workflow
@@ -72,12 +72,12 @@ curl "https://psmsl.org/data/obtaining/nucat.dat" -O
 cd ../..
 ```
 
-The United Nations Department of Economic and Social Affairs [World Urbanisation Prospects 2018](https://population.un.org/wup/downloads?tab=Urban%20Agglomerations) File 12 contains the population and locations of cities (urban agglomerations):
+The United Nations Department of Economic and Social Affairs Population Division's [World Urbanization Prospects 2025](https://population.un.org/wup/) publishes the population and locations of cities ([WUP2025-F21-DEGURBA-Cities_Pop.xlsx](https://population.un.org/wup/assets/Download/Cities/WUP2025-F21-DEGURBA-Cities_Pop.xlsx)):
 
 ```
-mkdir -p data_in/wup18
-cd data_in/wup18
-curl "https://population.un.org/wup/assets/Download/WUP2018-F12-Cities_Over_300K.xls" -O
+mkdir -p data_in/wup25
+cd data_in/wup25
+curl "https://population.un.org/wup/assets/Download/Cities/WUP2025-F21-DEGURBA-Cities_Pop.xlsx" -O
 cd ../..
 ```
 
