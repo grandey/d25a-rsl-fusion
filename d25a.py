@@ -871,7 +871,7 @@ def fig_total_population_time_series():
     ax.set_ylabel('Population, billions')
     ax.set_xlim(population_df.index[1], population_df.index[-1])
     ax.set_ylim(0, 7)
-    ax.xaxis.set_major_locator(plticker.MultipleLocator(base=10))
+    ax.xaxis.set_major_locator(plticker.MultipleLocator(base=10, offset=5))
     ax.xaxis.set_minor_locator(plticker.MultipleLocator(base=5))
     ax.yaxis.set_major_locator(plticker.MultipleLocator(base=1.0))
     ax.yaxis.set_minor_locator(plticker.MultipleLocator(base=0.5))
@@ -974,7 +974,7 @@ def fig_fusion_time_series(slr_str='rsl', gauges_str='gauges', loc_str='TANJONG_
             ax.set_ylim([0, 2])
         ax.yaxis.set_major_locator(plticker.MultipleLocator(base=0.5))
         ax.yaxis.set_minor_locator(plticker.MultipleLocator(base=0.1))
-        ax.xaxis.set_minor_locator(plticker.MultipleLocator(base=1))
+        ax.xaxis.set_minor_locator(plticker.MultipleLocator(base=5))
     return fig, axs
 
 
@@ -1007,6 +1007,8 @@ def fig_year_2100_map(slr_str='rsl', gauges_str='grid', proj_str='high-end', dif
     fig = plt.figure(figsize=(12, 6), tight_layout=True)
     ax = fig.add_subplot(1, 1, 1, projection=ccrs.PlateCarree())
     gl = ax.gridlines(draw_labels=True, zorder=1, alpha=0.2)
+    gl.xlocator = plticker.FixedLocator(np.arange(-180, 181, 20))
+    gl.ylocator = plticker.FixedLocator(np.arange(-80, 81, 20))
     gl.top_labels = False
     gl.right_labels = False
     ax.add_feature(cartopy.feature.LAND, zorder=2)
