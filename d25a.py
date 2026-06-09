@@ -339,7 +339,10 @@ def get_sl_qfs(workflow='fusion_1e+2e', slr_str='rsl', scenario='ssp585'):
         pref_da = get_sl_qfs(workflow=wf, slr_str=slr_str, scenario=scenario)
         outer_da = get_sl_qfs(workflow='outer', slr_str=slr_str, scenario=scenario)
         # Weighting function, with weights depending on probability p
-        w_da = get_fusion_weights()
+        if 'G24' in workflow:  # use Grandey et al. (2024) weighting function
+            w_da = get_fusion_weights(pref_percs=(0.17, 0.83))
+        else:  # use revised weighting function
+            w_da = get_fusion_weights()
         # Derive fusion distribution; rely on automatic broadcasting/alignment
         qfs_da = w_da * pref_da + (1 - w_da) * outer_da
         # Correct median (which is currently nan due to nan in outer_da)
