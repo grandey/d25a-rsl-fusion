@@ -46,11 +46,12 @@ plt.rcParams['ytick.right'] = True
 # Constants
 SCENARIO_LABEL_DICT = {'ssp126': 'SSP1-2.6', 'ssp585': 'SSP5-8.5', 'ssp245': 'SSP2-4.5'}  # names of scenarios
 SLR_LABEL_DICT = {'gmsl': 'GMSL rise', 'rsl': 'RSL rise', 'novlm': 'Geocentric sea-level rise'}
-AR6_DIR = Path.cwd() / 'data_in' / 'ar6'  # directory containing AR6 input data
-WUP25_DIR = Path.cwd() / 'data_in' / 'wup25'  # directory containing World Urbanization Prospects 2025 data
-NASA_DIR = Path.cwd() / 'data_in' / 'nasa'  # directory containing the NASA Distance to the Nearest Coast data
-DATA_DIR = Path.cwd() / 'data_d25a'  # directory containing projections produced by data_d25a.ipynb
-FIG_DIR = Path.cwd() / 'figs_d25a'  # directory in which to save figures
+REPO_DIR = Path(__file__).resolve().parent  # location of this repository
+AR6_DIR = REPO_DIR / 'data_in' / 'ar6'  # directory containing AR6 input data
+WUP25_DIR = REPO_DIR / 'data_in' / 'wup25'  # directory containing World Urbanization Prospects 2025 data
+NASA_DIR = REPO_DIR / 'data_in' / 'nasa'  # directory containing the NASA Distance to the Nearest Coast data
+DATA_DIR = REPO_DIR / 'data_d25a'  # directory containing projections produced by data_d25a.ipynb
+FIG_DIR = REPO_DIR / 'figs_d25a'  # directory in which to save figures
 F_NUM = itertools.count(1)  # main figures counter
 S_NUM = itertools.count(1)  # supplementary figures counter
 O_NUM = itertools.count(1)  # other figures counter
@@ -413,8 +414,7 @@ def write_time_series_da(slr_str='rsl', proj_str='fusion-ssp585'):
         time_series_da = qfs_da.sel(quantiles=p).squeeze()
     # Write to NetCDF file
     out_dir = DATA_DIR / 'time_series'
-    if not out_dir.exists():
-        out_dir.mkdir(parents=True, exist_ok=True)
+    out_dir.mkdir(parents=True, exist_ok=True)
     out_fn = out_dir / f'{slr_str}_{proj_str}_d25a.nc'
     if slr_str == 'gmsl':
         print(f'Writing time_series/{out_fn.name}')
@@ -446,10 +446,9 @@ def read_time_series_da(slr_str='rsl', proj_str='fusion-ssp585'):
     in_dir = DATA_DIR / 'time_series'
     in_fn = in_dir / f'{slr_str}_{proj_str}_d25a.nc'
     print(f'Reading time_series/{in_fn.name}')
-    # If input file does not yet exist, create it
+    # Check if input file exists
     if not in_fn.exists():
-        print(f'File {in_fn.name} not found; creating it now')
-        _ = write_time_series_da(slr_str=slr_str, proj_str=proj_str)
+        raise FileNotFoundError(f'{in_fn} does not exist. Run the data-processing notebook first.')
     # Read data
     time_series_da = xr.open_dataset(in_fn)['sea_level_change']
     return time_series_da
@@ -510,10 +509,9 @@ def read_locations_info_df():
     in_dir = DATA_DIR / 'time_series'
     in_fn = in_dir / 'locations_info_d25a.csv'
     print(f'Reading time_series/{in_fn.name}')
-    # If input file does not yet exist, create it
+    # Check if input file exists
     if not in_fn.exists():
-        print(f'File {in_fn.name} not found; creating it now')
-        _ = write_locations_info_df()
+        raise FileNotFoundError(f'{in_fn} does not exist. Run the data-processing notebook first.')
     # Read data
     locations_info_df = pd.read_csv(in_fn, index_col='location', dtype={'location': 'Int64', 'gauge_id': 'Int64'})
     return locations_info_df
@@ -640,8 +638,7 @@ def write_year_2100_df(slr_str='rsl', gauges_str='gauges', cities_str=None):
         year_2100_df = year_2100_df.drop(columns=['megacity_2050'])
     # Save to CSV
     out_dir = DATA_DIR / 'year_2100'
-    if not out_dir.exists():
-        out_dir.mkdir()
+    out_dir.mkdir(parents=True, exist_ok=True)
     if cities_str:
         out_fn = out_dir / f'{slr_str}_{gauges_str}_{cities_str}_2100_d25a.csv'
     else:
@@ -687,10 +684,9 @@ def read_year_2100_df(slr_str='rsl', gauges_str='gauges', cities_str=None):
     else:
         in_fn = in_dir / f'{slr_str}_{gauges_str}_2100_d25a.csv'
     print(f'Reading year_2100/{in_fn.name}')
-    # If input file does not yet exist, create it
+    # Check if input file exists
     if not in_fn.exists():
-        print(f'File {in_fn.name} not found; creating it now')
-        _ = write_year_2100_df(slr_str=slr_str, gauges_str=gauges_str, cities_str=cities_str)
+        raise FileNotFoundError(f'{in_fn} does not exist. Run the data-processing notebook first.')
     # Read data
     year_2100_df = pd.read_csv(in_fn)
     return year_2100_df
@@ -1240,7 +1236,7 @@ def name_save_fig(fig, fso='o', exts=('pdf', 'png'), close=False):
     for ext in exts:
         # Sub-directory
         sub_dir = FIG_DIR.joinpath(f'{fso}_{ext}')
-        sub_dir.mkdir(exist_ok=True)
+        sub_dir.mkdir(parents=True, exist_ok=True)
         # Save
         fig_path = sub_dir.joinpath(f'{fig_name}.{ext}')
         fig.savefig(fig_path)
