@@ -63,15 +63,6 @@ cd ../..
 
 Users of these IPCC AR6 projections should note the [required acknowledgments and citations](https://doi.org/10.5281/zenodo.6382554).
 
-The [PSMSL catalogue file](https://psmsl.org/data/obtaining/nucat.dat) identifies which country each tide gauge corresponds to:
-
-```
-mkdir -p data_in/psmsl
-cd data_in/psmsl
-curl "https://psmsl.org/data/obtaining/nucat.dat" -O
-cd ../..
-```
-
 The United Nations Department of Economic and Social Affairs Population Division's [World Urbanization Prospects 2025](https://population.un.org/wup/) publishes the population and locations of cities ([WUP2025-F21-DEGURBA-Cities_Pop.xlsx](https://population.un.org/wup/assets/Download/Cities/WUP2025-F21-DEGURBA-Cities_Pop.xlsx)):
 
 ```

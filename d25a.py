@@ -47,7 +47,6 @@ plt.rcParams['ytick.right'] = True
 SCENARIO_LABEL_DICT = {'ssp126': 'SSP1-2.6', 'ssp585': 'SSP5-8.5', 'ssp245': 'SSP2-4.5'}  # names of scenarios
 SLR_LABEL_DICT = {'gmsl': 'GMSL rise', 'rsl': 'RSL rise', 'novlm': 'Geocentric sea-level rise'}
 AR6_DIR = Path.cwd() / 'data_in' / 'ar6'  # directory containing AR6 input data
-PSMSL_DIR = Path.cwd() / 'data_in' / 'psmsl'  # directory containing PSMSL catalogue file
 WUP25_DIR = Path.cwd() / 'data_in' / 'wup25'  # directory containing World Urbanization Prospects 2025 data
 NASA_DIR = Path.cwd() / 'data_in' / 'nasa'  # directory containing the NASA Distance to the Nearest Coast data
 DATA_DIR = Path.cwd() / 'data_d25a'  # directory containing projections produced by data_d25a.ipynb
@@ -66,8 +65,8 @@ def get_watermark():
 @cache
 def get_gauge_info(gauge='TANJONG_PAGAR'):
     """
-    Get name, ID, latitude, longitude, and country of tide gauge, using location_list.lst
-    (https://doi.org/10.5281/zenodo.6382554) and the PSMSL catalogue file.
+    Get name, ID, latitude, and longitude of tide gauge, using location_list.lst
+    (https://doi.org/10.5281/zenodo.6382554).
 
     Parameters
     ----------
@@ -77,11 +76,11 @@ def get_gauge_info(gauge='TANJONG_PAGAR'):
     Returns
     -------
     gauge_info : dict
-        Dictionary containing gauge_name, gauge_id, lat, lon, country.
+        Dictionary containing gauge_name, gauge_id, lat, lon.
 
     Notes
     -----
-    This function builds on d23a-fusion by also including country information.
+    This function is based on d23a-fusion.
     """
     # Read location_list.lst into DataFrame
     in_fn = AR6_DIR / 'location_list.lst'
@@ -97,18 +96,6 @@ def get_gauge_info(gauge='TANJONG_PAGAR'):
             gauge_info[c] = df[c].values[0]
     except IndexError:
         raise ValueError(f"gauge='{gauge}' not found.")
-    # Get country information
-    psmsl_fn = PSMSL_DIR / 'nucat.dat'  # PSMSL catalogue file
-    with open(psmsl_fn) as f:  # open file
-        for l in f:  # loop over lines
-            s_list = l.split()  # split line into strings
-            try:
-                if l[0:24] == '                        ' and len(s_list) >= 2:
-                    country = ' '.join(s_list[1:])  # most recent country heading read
-                elif s_list[0] == str(gauge_info['gauge_id']):
-                    gauge_info['country'] = country  # if gauge found, save most recently-read country info
-            except IndexError:
-                pass
     return gauge_info
 
 
@@ -470,7 +457,7 @@ def read_time_series_da(slr_str='rsl', proj_str='fusion-ssp585'):
 
 def write_locations_info_df():
     """
-    Get and write locations information DataFrame to CSV, including gauge information for gauges.
+    Get and write locations information DataFrame to CSV, including gauge information where applicable.
 
     Returns
     -------
@@ -483,11 +470,11 @@ def write_locations_info_df():
     locations returned by get_sl_qfs().
     """
     # Create DataFrame to hold information about locations
-    locations_info_df = pd.DataFrame(columns=['location', 'lat', 'lon', 'gauge_id', 'gauge_name', 'gauge_country'])
+    locations_info_df = pd.DataFrame(columns=['location', 'lat', 'lon', 'gauge_id', 'gauge_name'])
     # Loop over locations for which projections are available
     qfs_da = get_sl_qfs(workflow='fusion_1e+2e', slr_str='rsl', scenario='ssp585')
     for location in qfs_da.locations.data:
-        # Get information about location, assuming it is a gauge location for now
+        # Get location information
         gauge_info = get_gauge_info(location)
         # Map to location info columns
         lat = gauge_info['lat']
@@ -495,11 +482,10 @@ def write_locations_info_df():
         if location < 10000:  # remaining columns only relevant to gauge locations (which have IDs < 10000)
             gauge_id = gauge_info['gauge_id']
             gauge_name = gauge_info['gauge_name']
-            gauge_country = gauge_info['country']
         else:
-            gauge_id, gauge_name, gauge_country = None, None, None
+            gauge_id, gauge_name = None, None
         # Append to DataFrame
-        locations_info_df.loc[len(locations_info_df)] = [location, lat, lon, gauge_id, gauge_name, gauge_country]
+        locations_info_df.loc[len(locations_info_df)] = [location, lat, lon, gauge_id, gauge_name]
     # Index by location
     locations_info_df = locations_info_df.set_index('location')
     # Save to CSV
@@ -518,7 +504,7 @@ def read_locations_info_df():
     Returns
     -------
     locations_info_df : DataFrame
-        Locations information DataFrame (location, lat, lon, gauge_id, gauge_name, gauge_country)
+        Locations information DataFrame (location, lat, lon, gauge_id, gauge_name)
     """
     # Input file
     in_dir = DATA_DIR / 'time_series'
