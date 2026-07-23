@@ -30,18 +30,18 @@ The sea-level projections are contained in [**`data_d25a/`**](data_d25a/).  The 
 The following workflow can be used to reproduce and analyse the projections.
 
 ### 1. Create environment
-To create a _conda_ environment with the necessary software dependencies, use the [**`environment.yml`**](environment.yml) file:
+To create a _conda_ environment with the required software dependencies, use [`01_environment/environment.yml`](01_environment/environment.yml):
 
 ```
-mamba env create -f environment.yml
+mamba env create -f 01_environment/environment.yml
 ```
 
-The analysis has been performed within this `d25a-rsl-fusion` environment on _macOS 26_ (arm64).
+The analysis workflow has been developed within this `d25a-rsl-fusion` environment on _macOS 26_ (arm64). The exact package versions used for development are recorded in [`01_environment/environment-resolved.yml`](01_environment/environment-resolved.yml).
 
-If you do not have a separate _Jupyter_ server, you can install _JupyterLab_ in this environment:
+If you do not already have access to a _Jupyter_ server, you can install _JupyterLab_ in the same environment:
 
 ```
-mamba activate d25a-rsl-fusion 
+mamba activate d25a-rsl-fusion
 mamba install jupyterlab
 ```
 

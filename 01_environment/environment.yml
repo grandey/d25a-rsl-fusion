@@ -1,0 +1,28 @@
+# Create environment:
+#   mamba env create -f environment.yml
+#
+# Recreate from scratch:
+#   mamba env remove -n d25a-rsl-fusion
+#   mamba env create -f environment.yml
+#
+# Record the exact resolved environment:
+#   mamba env export --name d25a-rsl-fusion --no-builds > environment-resolved.yml
+
+name: d25a-rsl-fusion
+
+channels:
+  - conda-forge
+
+dependencies:
+  - python=3.12
+  - ipykernel
+  - numpy=2.4
+  - scipy=1.18
+  - pandas=3.0
+  - xarray=2026.4
+  - openpyxl=3.1
+  - netcdf4=1.7
+  - matplotlib=3.10
+  - seaborn=0.13
+  - cartopy=0.25
+  - watermark
