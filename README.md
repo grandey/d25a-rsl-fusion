@@ -10,7 +10,7 @@ B. S. Grandey et al.,  **Worst- and best-case sea-level projections for coastal 
 The manuscript serves as the primary reference.
 The Zenodo archive of this repository serves as a secondary reference.
 
-## Data files containing sea-level projections
+## Data files containing sea-level projections [TO REVISE]
 The sea-level projections are contained in [**`data_d25a/`**](data_d25a/).  The values are in metres, relative to the IPCC AR6 baseline (1995–2014).
 
 ### Contents
@@ -46,46 +46,25 @@ mamba install jupyterlab
 ```
 
 ### 2. Download input data
-Input data from the [IPCC AR6 Sea Level Projections](https://doi.org/10.5281/zenodo.6382554), the [IPCC AR6 Relative Sea Level Projection Distributions](https://doi.org/10.5281/zenodo.5914932), and the [IPCC AR6 Relative Sea Level Projections without Background Component](https://doi.org/10.5281/zenodo.5967269) repositories can be downloaded as follows:
+To download the input data, run [`02_input_data/download_input_data.sh`](02_input_data/download_input_data.sh):
 
 ```
-mkdir -p data_in/ar6
-cd data_in/ar6
-curl "https://zenodo.org/records/6382554/files/ar6.zip?download=1" -O
-unzip ar6.zip
-curl "https://zenodo.org/records/5914932/files/ar6-regional-distributions.zip?download=1" -O
-unzip ar6-regional-distributions.zip
-curl "https://zenodo.org/records/5967269/files/ar6-regional_novlm-distributions.zip?download=1" -O
-unzip ar6-regional_novlm-distributions.zip
-curl "https://zenodo.org/records/6382554/files/location_list.lst?download=1" -O
-cd ../..
+bash 02_input_data/download_input_data.sh
 ```
 
-Users of these IPCC AR6 projections should note the [required acknowledgments and citations](https://doi.org/10.5281/zenodo.6382554).
+The script downloads the following input data to the directory `02_input_data/data_downloaded/`:
+1. City populations and locations from the United Nations Department of Economic and Social Affairs Population Division's [World Urbanization Prospects 2025](https://population.un.org/wup/): [`WUP2025-F21-DEGURBA-Cities_Pop.xlsx`](https://population.un.org/wup/assets/Download/Cities/WUP2025-F21-DEGURBA-Cities_Pop.xlsx).
+2. The [Distance to Nearest Coastline 0.04-Degree Grid dataset](https://www.pacioos.hawaii.edu/metadata/dist2coast_4deg.html), created by the NASA Ocean Biology Processing Group and distributed by the Pacific Islands Ocean Observing System: [`dist2coast_4deg.nc`](https://pae-paha.pacioos.hawaii.edu/erddap/griddap/dist2coast_4deg.nc).
+3. The complete list of tide-gauge and grid locations used by [FACTS v1.1.4](https://github.com/radical-collaboration/facts/tree/v1.1.4): [`location.lst`](https://raw.githubusercontent.com/radical-collaboration/facts/refs/tags/v1.1.4/input_files/location.lst).
 
-The United Nations Department of Economic and Social Affairs Population Division's [World Urbanization Prospects 2025](https://population.un.org/wup/) publishes the population and locations of cities ([WUP2025-F21-DEGURBA-Cities_Pop.xlsx](https://population.un.org/wup/assets/Download/Cities/WUP2025-F21-DEGURBA-Cities_Pop.xlsx)):
+### 3. Identify locations of interest [TODO]
 
-```
-mkdir -p data_in/wup25
-cd data_in/wup25
-curl "https://population.un.org/wup/assets/Download/Cities/WUP2025-F21-DEGURBA-Cities_Pop.xlsx" -O
-cd ../..
-```
+### 4. Run FACTS [TODO]
 
-The NASA [Distance to the Nearest Coast](https://oceancolor.gsfc.nasa.gov/resources/docs/distfromcoast/) dataset contains the distance to the nearest coast at 0.04-degree resolution:
-
-```
-mkdir -p data_in/nasa
-cd data_in/nasa
-curl "https://oceancolor.gsfc.nasa.gov/images/resources/distfromcoast/dist2coast.txt.bz2" -O
-bzip2 -d dist2coast.txt.bz2
-cd ../..
-```
-
-### 3. Produce data for fusion, high-end, high, central, low, and low-end projections
+### 5. Produce fusion, high-end, high, central, low, and low-end projections [TO REVISE]
 [**`data_d25a.ipynb`**](data_d25a.ipynb) uses the input data to produce the fusion, high-end, high, central, low, and low-end projections, which are saved to [**`data_d25a/`**](data_d25a/).
 
-### 4. Analyse data and produce figures
+### 6. Analyse data and produce figures [TO REVISE]
 [**`figs_d25a.ipynb`**](figs_d25a.ipynb) analyses the projections and produces the figures.
 
 ## Author

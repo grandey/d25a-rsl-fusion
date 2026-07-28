@@ -1,5 +1,6 @@
 # Misc - added by BSG
 data_in/
+data_downloaded/
 local/
 temp_*
 temp.*
