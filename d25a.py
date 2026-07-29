@@ -263,7 +263,7 @@ def get_sl_qfs(workflow='fusion_1e+2e', slr_str='rsl', scenario='ssp585'):
         # Keep only coastal locations of interest
         if slr_str != 'gmsl':
             coastal_loc_df = get_coastal_loc_df()
-            qfs_da = qfs_da.sel(locations=coastal_loc_df.index)
+            qfs_da = qfs_da.sel(locations=coastal_loc_df['loc'].to_numpy())
         # Change units from mm to m
         qfs_da = qfs_da / 1000.
         qfs_da.attrs['units'] = 'm'
