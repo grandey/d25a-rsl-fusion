@@ -47,9 +47,8 @@ plt.rcParams['ytick.right'] = True
 SCENARIO_LABEL_DICT = {'ssp126': 'SSP1-2.6', 'ssp585': 'SSP5-8.5', 'ssp245': 'SSP2-4.5'}  # names of scenarios
 SLR_LABEL_DICT = {'gmsl': 'GMSL rise', 'rsl': 'RSL rise', 'novlm': 'Geocentric sea-level rise'}
 REPO_DIR = Path(__file__).resolve().parent  # location of this repository
+DOWNLOADED_DIR = REPO_DIR / '02_input_data' / 'data_downloaded'  # directory containing downloaded input data
 AR6_DIR = REPO_DIR / 'data_in' / 'ar6'  # directory containing AR6 input data
-WUP25_DIR = REPO_DIR / 'data_in' / 'wup25'  # directory containing World Urbanization Prospects 2025 data
-NASA_DIR = REPO_DIR / 'data_in' / 'nasa'  # directory containing the NASA Distance to the Nearest Coast data
 DATA_DIR = REPO_DIR / 'data_d25a'  # directory containing projections produced by data_d25a.ipynb
 FIG_DIR = REPO_DIR / 'figs_d25a'  # directory in which to save figures
 F_NUM = itertools.count(1)  # main figures counter
@@ -66,8 +65,7 @@ def get_watermark():
 @cache
 def get_gauge_info(gauge='TANJONG_PAGAR'):
     """
-    Get name, ID, latitude, and longitude of tide gauge, using location_list.lst
-    (https://doi.org/10.5281/zenodo.6382554).
+    Get name, ID, latitude, and longitude of tide gauge, using FACTS location.lst.
 
     Parameters
     ----------
@@ -84,7 +82,7 @@ def get_gauge_info(gauge='TANJONG_PAGAR'):
     This function is based on d23a-fusion.
     """
     # Read location_list.lst into DataFrame
-    in_fn = AR6_DIR / 'location_list.lst'
+    in_fn = DOWNLOADED_DIR / 'location.lst'
     in_df = pd.read_csv(in_fn, sep='\t', names=['gauge_name', 'gauge_id', 'lat', 'lon'])
     # Get data for gauge of interest
     try:
@@ -108,17 +106,17 @@ def get_coastal_cities_df():
     Returns
     -------
     cities_df : DataFrame
-        Dataframe of city_index, city_name, city_country, city_lat, city_lon, population_2025_1000s,
-        population_2050_1000s, megacity_2050, coast_distance_km
+        DataFrame containing city_index (index), city_name, city_country, city_lat, city_lon,
+        population_2025_1000s, population_2050_1000s, megacity_2050, coast_distance_km
 
     Notes
     -----
-    1. The coast distance is based on linear interpolation of the Distance to the Nearest Coast data, using the lat and
-       lon of each city. The extent of the city is not explicitly considered.
-    2. The megacity_2050 flag is based on projected year-2050 population of at least 10 million.
+    1. The coast distance is based on linear interpolation of the Distance to the Nearest Coastline data, using the
+       lat and lon of each city. The spatial extent of the city is not explicitly considered.
+    2. The megacity_2050 flag identifies cities with a projected 2050 population of at least 10 million.
     """
     # Read World Urbanization Prospects 2025 data
-    in_fn = WUP25_DIR / 'WUP2025-F21-DEGURBA-Cities_Pop.xlsx'
+    in_fn = DOWNLOADED_DIR / 'WUP2025-F21-DEGURBA-Cities_Pop.xlsx'
     cities_df = pd.read_excel(in_fn, sheet_name='Data', usecols='A,B,H,J,K,BJ,CI', index_col=None)
     # Rename and reorder columns
     cities_df = cities_df.rename(columns={'Index': 'city_index', 'Location': 'city_country', 'City_Name': 'city_name',
@@ -129,19 +127,24 @@ def get_coastal_cities_df():
                            'population_2025_1000s', 'population_2050_1000s']]
     # Identify future megacities, with projected population of at least 10 million by 2050
     cities_df['megacity_2050'] = cities_df['population_2050_1000s'] >= 10000
-    # Read Distance to the Nearest Coast data (https://oceancolor.gsfc.nasa.gov/resources/docs/distfromcoast/)
-    in_fn = NASA_DIR / 'dist2coast.txt'
-    dist_df = pd.read_csv(in_fn, sep='\t', names=['lon', 'lat', 'distance'])
-    # Grid as Numpy array and create interpolator
-    dist_pivot = dist_df.pivot(index='lat', columns='lon', values='distance')
-    interp = interpolate.RegularGridInterpolator((dist_pivot.index, dist_pivot.columns), dist_pivot.values,
-                                                 method='linear', bounds_error=True, fill_value=np.nan)
-    # Interpolate distance using lat-lon coords of cities
-    cities_coords = cities_df[['city_lat', 'city_lon']].to_numpy()
-    cities_df['coast_distance_km'] = interp(cities_coords)
-    cities_df['coast_distance_km'] = cities_df['coast_distance_km'].round().astype(int)
-    # Keep only cities within 100 km of coast
-    cities_df = cities_df[cities_df['coast_distance_km'] <= 100]
+    # Read Distance to the Nearest Coastline data
+    in_fn = DOWNLOADED_DIR / 'dist2coast_4deg.nc'
+    with xr.open_dataset(in_fn, mask_and_scale=False) as dist_ds:  # do not mask 0.0 (declared fill value yet valid)
+        # Create interpolator
+        interp = interpolate.RegularGridInterpolator(
+            (dist_ds['latitude'].to_numpy(), dist_ds['longitude'].to_numpy()),
+            dist_ds['dist'].to_numpy(),
+            method='linear',
+            bounds_error=True,
+        )
+        # Interpolate distance using lat-lon coords of cities
+        cities_coords = cities_df[['city_lat', 'city_lon']].to_numpy()
+        coast_distance_km = np.abs(interp(cities_coords))
+    # Store distance rounded to nearest integer km
+    cities_df['coast_distance_km'] = coast_distance_km.round().astype(int)
+    # Keep only cities within 100 km of coast (using non-rounded values)
+    coastal = coast_distance_km <= 100.
+    cities_df = cities_df.loc[coastal].copy()
     return cities_df
 
 
@@ -156,7 +159,7 @@ def get_total_population_df():
         Dataframe of total population in billions for different years.
     """
     # Read World Urbanization Prospects 2025 data
-    in_fn = WUP25_DIR / 'WUP2025-F21-DEGURBA-Cities_Pop.xlsx'
+    in_fn = DOWNLOADED_DIR / 'WUP2025-F21-DEGURBA-Cities_Pop.xlsx'
     wup25_df = pd.read_excel(in_fn, sheet_name='Data', index_col='Index')
     # Identify coastal cities
     coastal_df = get_coastal_cities_df()
