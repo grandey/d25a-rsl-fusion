@@ -81,7 +81,7 @@ def get_gauge_info(gauge='TANJONG_PAGAR'):
     -----
     This function is based on d23a-fusion.
     """
-    # Read location_list.lst into DataFrame
+    # Read FACTS location.lst into DataFrame
     in_fn = DOWNLOADED_DIR / 'location.lst'
     in_df = pd.read_csv(in_fn, sep='\t', names=['gauge_name', 'gauge_id', 'lat', 'lon'])
     # Get data for gauge of interest
@@ -186,44 +186,33 @@ def get_total_population_df():
 @cache
 def get_coastal_loc_df():
     """
-    Return AR6 projections locations with (i) data AND (ii) a gauge or a coastal city.
+    Return FACTS locations with a gauge or a coastal city.
 
     Returns
     -------
     coastal_locations_df : DataFrame
-        Dataframe of locations (AR6 projections location code, latitude, longitude)
-
-    Note
-    ----
-    This function provides input to get_sl_qfs().
+        FACTS location name, loc, lat, lon.
     """
-    # Read example AR6 projections file
-    in_dir = AR6_DIR / 'ar6-regional-distributions' / 'regional' / 'dist_workflows' / 'wf_1e' / 'ssp585'
-    in_fn = in_dir / 'total-workflow.nc'
-    ar6_ds = xr.open_dataset(in_fn)
-    # Drop locations with missing data (including gauge locations with missing data)
-    ar6_ds = ar6_ds.dropna(dim='locations', how='any')
+    # Read FACTS location.lst into DataFrame
+    in_fn = DOWNLOADED_DIR / 'location.lst'
+    in_df = pd.read_csv(in_fn, sep='\t', names=['name', 'loc', 'lat', 'lon'])
     # Gauge locations with data
-    gauge_ds = ar6_ds.sel(locations=slice(0, int(1e8)))
-    gauge_loc_df = pd.DataFrame()
-    gauge_loc_df['lat'] = gauge_ds['lat']
-    gauge_loc_df['lon'] = gauge_ds['lon']
-    gauge_loc_df['loc'] = gauge_ds['locations']
-    gauge_loc_df = gauge_loc_df.set_index('loc').sort_index()  # set index and sort
+    gauge_loc_df = in_df.loc[in_df['loc'] < int(1e8)].copy()
     # Coastal city grid locations
     cities_df = get_coastal_cities_df().copy()
-    cities_loc_df = pd.DataFrame()
-    cities_loc_df['lat'] = cities_df['city_lat'].round().astype(int)  # round lat and lon
-    cities_loc_df['lon'] = cities_df['city_lon'].round().astype(int)
-    cities_loc_df['loc'] = ('10' + (90 - cities_loc_df['lat']).astype(str).str.zfill(3) + '0' +  # form 10MMM0NNN0
-                            (cities_loc_df['lon'] % 360).astype(str).str.zfill(3) + '0').astype(int)
-    cities_loc_df = cities_loc_df.drop_duplicates()  # drop duplications
-    cities_loc_df = cities_loc_df.set_index('loc').sort_index()  # set index and sort
-    # Intersection between city locations and AR6 projections data
-    overlap = cities_loc_df.index.intersection(ar6_ds['locations'])
-    cities_loc_df = cities_loc_df.loc[overlap]
+    cities_df['lat'] = cities_df['city_lat'].round().astype(int)  # round lat and lon
+    cities_df['lon'] = cities_df['city_lon'].round().astype(int)
+    cities_df['loc'] = ('10' + (90 - cities_df['lat']).astype(str).str.zfill(3) + '0' +  # form 10MMM0NNN0
+                        (cities_df['lon'] % 360).astype(str).str.zfill(3) + '0').astype(int)
+    cities_loc_set = set(cities_df['loc'])  # set of unique locations
+    # Intersection between city locations and FACTS locations
+    cities_loc_df = in_df.loc[in_df['loc'].isin(cities_loc_set)].copy()
+    # Check for any missing city locations
+    missing_loc_set = cities_loc_set - set(cities_loc_df['loc'])
+    if missing_loc_set:
+        raise ValueError(f'{len(missing_loc_set)} city grid locations are absent from location.lst')
     # Combine gauge and city locations into a single DataFrame
-    coastal_loc_df = pd.concat([gauge_loc_df, cities_loc_df], axis=0)
+    coastal_loc_df = pd.concat([gauge_loc_df, cities_loc_df], ignore_index=True)
     return coastal_loc_df
 
 
