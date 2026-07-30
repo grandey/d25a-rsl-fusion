@@ -213,6 +213,8 @@ def get_coastal_loc_df():
         raise ValueError(f'{len(missing_loc_set)} city grid locations are absent from location.lst')
     # Combine gauge and city locations into a single DataFrame
     coastal_loc_df = pd.concat([gauge_loc_df, cities_loc_df], ignore_index=True)
+    # Check for any duplicate locations
+    assert len(coastal_loc_df['loc'].unique()) == len(coastal_loc_df), "Duplicate locations in coastal_loc_df."
     return coastal_loc_df
 
 
