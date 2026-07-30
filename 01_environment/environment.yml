@@ -26,3 +26,4 @@ dependencies:
   - seaborn=0.13
   - cartopy=0.25
   - watermark
+  - wget
