@@ -30,7 +30,7 @@ The sea-level projections are contained in [**`data_d25a/`**](data_d25a/).  The 
 The following workflow can be used to reproduce and analyse the projections.
 
 ### 1. Create environment
-To create a _conda_ environment with the required software dependencies, use [`01_environment/environment.yml`](01_environment/environment.yml):
+To create a conda environment with the required software dependencies, use [`01_environment/environment.yml`](01_environment/environment.yml):
 
 ```
 mamba env create -f 01_environment/environment.yml
@@ -57,9 +57,29 @@ The script downloads the following input data to the directory `02_input_data/da
 2. The [Distance to Nearest Coastline 0.04-Degree Grid dataset](https://www.pacioos.hawaii.edu/metadata/dist2coast_4deg.html), created by the NASA Ocean Biology Processing Group and distributed by the Pacific Islands Ocean Observing System: [`dist2coast_4deg.nc`](https://pae-paha.pacioos.hawaii.edu/erddap/griddap/dist2coast_4deg.nc).
 3. The complete list of tide-gauge and grid locations used by [FACTS v1.1.4](https://github.com/radical-collaboration/facts/tree/v1.1.4): [`location.lst`](https://raw.githubusercontent.com/radical-collaboration/facts/refs/tags/v1.1.4/input_files/location.lst).
 
-### 3. Identify locations of interest [TODO]
+### 3. Identify locations of interest
 
-### 4. Run FACTS [TODO]
+[`03_locations/identify_locations.ipynb`](03_locations/identify_locations.ipynb) identifies FACTS locations associate with a tide gauge or city and writes them to [`03_locations/data_locations/location.lst`](03_locations/data_locations/location.lst).
+
+### 4. Install and run FACTS
+
+To install [FACTS v1.1.5](https://github.com/radical-collaboration/facts/tree/v1.1.5) in `$HOME/Github/facts_v1.1.5`, build the Docker image, run a dummy experiment, and download the module data, run [`04_facts/install_facts.sh`](04_facts/install_facts.sh):
+
+```
+mamba activate d25a-rsl-fusion
+bash 04_facts/install_facts.sh
+```
+
+To run FACTS experiments for SSP1-2.6, SSP2-4.5, SSP3-7.0, and SSP5-8.5, based on the `config.yml` files in [`04_facts/experiments/`](04_facts/experiments/), use [`04_facts/run_facts_experiment.sh`](04_facts/run_facts_experiment.sh):
+
+```
+bash 04_facts/run_facts_experiment.sh ssp126 &&
+bash 04_facts/run_facts_experiment.sh ssp245 &&
+bash 04_facts/run_facts_experiment.sh ssp370 &&
+bash 04_facts/run_facts_experiment.sh ssp585
+```
+
+The output files, approximately 9 GB per experiment, are written to the experiment-specific `output/` directories within [`04_facts/experiments/`](04_facts/experiments/). These large output files are not included in this repository.
 
 ### 5. Produce fusion, high-end, high, central, low, and low-end projections [TO REVISE]
 [**`data_d25a.ipynb`**](data_d25a.ipynb) uses the input data to produce the fusion, high-end, high, central, low, and low-end projections, which are saved to [**`data_d25a/`**](data_d25a/).
